@@ -3,6 +3,7 @@ package com.example.simplesocialmediaapp.Fragments;
 import android.net.Uri;
 import android.os.Bundle;
 
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
@@ -43,7 +44,24 @@ import android.widget.Toast;
 import android.content.Intent;
 import com.example.simplesocialmediaapp.SignInActivity;
 
+
+
 import java.util.ArrayList;
+
+/*
+LOCATION STUFF - EDMUND
+*/
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import androidx.core.app.ActivityCompat;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.firebase.database.FirebaseDatabase;
+import com.example.simplesocialmediaapp.Models.LocationModel;
+
+
+
 
 public class ProfileFragment extends Fragment {
 
@@ -55,6 +73,13 @@ public class ProfileFragment extends Fragment {
     CollectionReference collectionReference;
 
     private Button btnLogout;
+
+    /*
+    LOCATION STUFF - EDMUND
+     */
+    private Button btnShareLocation;
+    private FusedLocationProviderClient fusedLocationClient;
+
 
     FirebaseStorage firebaseStorage;
     StorageReference storageReference;
@@ -95,6 +120,29 @@ public class ProfileFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         btnLogout = view.findViewById(R.id.btn_logout); // Find Log Out button
+
+
+        // location code
+        btnShareLocation = view.findViewById(R.id.btn_share_location);
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(getContext());
+
+        btnShareLocation.setOnClickListener(v -> {
+            if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+                return;
+            }
+
+            fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+                if (location != null) {
+                    double lat = location.getLatitude();
+                    double lng = location.getLongitude();
+                    uploadLocationToFirebase(lat, lng);
+                } else {
+                    Toast.makeText(getContext(), "Could not fetch location", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }); // end of location code
+
 
         btnLogout.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -225,4 +273,22 @@ public class ProfileFragment extends Fragment {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
     }
+
+    // LOCATION STUFF - EDMUND
+    private void uploadLocationToFirebase(double lat, double lng) {
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        LocationModel locationModel = new LocationModel(lat, lng, System.currentTimeMillis());
+
+        FirebaseDatabase.getInstance().getReference("Locations")
+                .child(uid)
+                .setValue(locationModel)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(getContext(), "Location shared!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(), "Failed to share location", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
 }
