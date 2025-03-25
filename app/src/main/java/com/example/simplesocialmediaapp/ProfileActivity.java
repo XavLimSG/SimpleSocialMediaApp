@@ -38,6 +38,9 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.util.ArrayList;
+import android.widget.Button;
+import android.widget.Toast;
+import android.content.Intent;
 
 public class ProfileActivity extends AppCompatActivity {
 
@@ -68,6 +71,8 @@ public class ProfileActivity extends AppCompatActivity {
 
     StorageReference storageReference;
 
+    Button btnChat;
+
 
 
     @Override
@@ -75,6 +80,7 @@ public class ProfileActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_profile);
+        btnChat = findViewById(R.id.btn_chat);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -82,8 +88,23 @@ public class ProfileActivity extends AppCompatActivity {
         });
 
         UserId = getIntent().getStringExtra("uid");
+        if (UserId == null || UserId.isEmpty()) {
+            Toast.makeText(this, "Error: User ID not provided", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+
 
         initvar();
+
+        btnChat.setOnClickListener(v -> {
+            // Create an Intent to launch ChatActivity
+            Intent intent = new Intent(ProfileActivity.this, ChatActivity.class);
+            // Pass the profile's user ID as the chat partner
+            intent.putExtra("uid", UserId);
+            startActivity(intent);
+        });
 
         collectionReference.document(UserId).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override

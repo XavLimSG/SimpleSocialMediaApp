@@ -30,6 +30,27 @@ import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 
+
+
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import android.content.Intent;
+import android.widget.Toast;
+
+
+
+
 /**
  * A simple {@link Fragment} subclass.
  * Use the {@link HomeFragment#newInstance} factory method to
@@ -147,33 +168,76 @@ public class HomeFragment extends Fragment {
         sv_searchpost.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                int postsize = postids.size();
-                postids.clear();
+                if (!query.isEmpty()) {
+                    final String searchTerm = query.toLowerCase(); // assuming profiles are stored in lowercase
 
-                if (postsize > 0)
-                {
-                    postSearchAdapter.notifyItemRangeRemoved(0,postsize);
-                }
+                    // Create two prefix queries for username and email
+                    Query usernameQuery = firebaseFirestore.collection("Profiles")
+                            .orderBy("username")
+                            .startAt(searchTerm)
+                            .endAt(searchTerm + "\uf8ff");
 
-                if (!sv_searchpost.getQuery().equals(""))
-                {
-                    String text = sv_searchpost.getQuery().toString().toLowerCase();
+                    Query emailQuery = firebaseFirestore.collection("Profiles")
+                            .orderBy("email")
+                            .startAt(searchTerm)
+                            .endAt(searchTerm + "\uf8ff");
 
-                    CollectionReference collectionReference = firebaseFirestore.collection("Posts");
-                    collectionReference.whereArrayContains("content",text).get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
-                        @Override
-                        public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
-                            for (DocumentSnapshot snapshot1 : queryDocumentSnapshots)
-                            {
-                                PostSearchModel postSearchModel = snapshot1.toObject(PostSearchModel.class);
-                                postids.add(postSearchModel.getPostid());
+                    // Execute the queries and merge results
+                    usernameQuery.get().addOnSuccessListener(usernameSnapshot -> {
+                        emailQuery.get().addOnSuccessListener(emailSnapshot -> {
+                            // Merge both query results to avoid duplicates
+                            HashSet<DocumentSnapshot> resultsSet = new HashSet<>();
+                            resultsSet.addAll(usernameSnapshot.getDocuments());
+                            resultsSet.addAll(emailSnapshot.getDocuments());
+
+                            if (!resultsSet.isEmpty()) {
+                                // Create a list of matching user IDs
+                                List<String> matchingUserIds = new ArrayList<>();
+                                for (DocumentSnapshot doc : resultsSet) {
+                                    String userId = doc.getString("id");
+                                    if (userId != null && !userId.isEmpty()) {
+                                        matchingUserIds.add(userId);
+                                    }
+                                }
+
+                                // Clear any previous post results from the adapter's list
+                                postids.clear();
                                 postSearchAdapter.notifyDataSetChanged();
-                            }
-                        }
-                    });
-                }
 
-                return false;
+                                // For each matching user, query posts in the Realtime Database
+                                for (String userId : matchingUserIds) {
+                                    FirebaseDatabase.getInstance().getReference("Posts")
+                                            .orderByChild("uid")
+                                            .equalTo(userId)
+                                            .addListenerForSingleValueEvent(new ValueEventListener() {
+                                                @Override
+                                                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                                    for (DataSnapshot postSnap : snapshot.getChildren()) {
+                                                        String postId = postSnap.getKey();
+                                                        if (postId != null && !postids.contains(postId)) {
+                                                            postids.add(postId);
+                                                        }
+                                                    }
+                                                    postSearchAdapter.notifyDataSetChanged();
+                                                }
+
+                                                @Override
+                                                public void onCancelled(@NonNull DatabaseError error) {
+                                                    Toast.makeText(requireContext(), "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                                                }
+                                            });
+                                }
+                            } else {
+                                Toast.makeText(requireContext(), "No matching profiles found", Toast.LENGTH_SHORT).show();
+                            }
+                        }).addOnFailureListener(e ->
+                                Toast.makeText(requireContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                        );
+                    }).addOnFailureListener(e ->
+                            Toast.makeText(requireContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                    );
+                }
+                return true;
             }
 
             @Override
@@ -181,6 +245,7 @@ public class HomeFragment extends Fragment {
                 return false;
             }
         });
+
     }
 
     @Override
