@@ -10,6 +10,21 @@ import android.view.ViewGroup;
 
 import com.example.simplesocialmediaapp.R;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import com.example.simplesocialmediaapp.Adapters.ConversationsAdapter;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import java.util.ArrayList;
+import java.util.List;
+
+
 /**
  * A simple {@link Fragment} subclass.
  * Use the {@link ChatsFragment#newInstance} factory method to
@@ -29,6 +44,11 @@ public class ChatsFragment extends Fragment {
     public ChatsFragment() {
         // Required empty public constructor
     }
+
+    private RecyclerView rvChats;
+    private ConversationsAdapter conversationsAdapter;
+    private List<String> conversationIds;
+    private String currentUserId;
 
     /**
      * Use this factory method to create a new instance of
@@ -60,7 +80,48 @@ public class ChatsFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_chats, container, false);
+        // Inflate the layout for this fragment (must have a RecyclerView with ID rv_chats)
+        View view = inflater.inflate(R.layout.fragment_chats, container, false);
+
+        // 1. Find the RecyclerView
+        rvChats = view.findViewById(R.id.rv_chats);
+        rvChats.setLayoutManager(new LinearLayoutManager(getContext()));
+
+        // 2. Prepare data structures
+        conversationIds = new ArrayList<>();
+        currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        // 3. Create and set the adapter
+        conversationsAdapter = new ConversationsAdapter(conversationIds, currentUserId);
+        rvChats.setAdapter(conversationsAdapter);
+
+        // 4. Query the userChats node to find all conversations for this user
+        DatabaseReference userChatsRef = FirebaseDatabase.getInstance()
+                .getReference("UserChats")
+                .child(currentUserId);
+
+        userChatsRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                // Clear old data
+                conversationIds.clear();
+
+                // For each conversation child, get its key (the conversationId)
+                for (DataSnapshot convSnap : snapshot.getChildren()) {
+                    String convId = convSnap.getKey(); // e.g. "abc_xyz"
+                    conversationIds.add(convId);
+                }
+
+                // Notify the adapter that the data has changed
+                conversationsAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                // Handle errors if needed
+            }
+        });
+
+        return view;
     }
 }

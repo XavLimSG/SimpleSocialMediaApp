@@ -64,6 +64,13 @@ public class ChatActivity extends AppCompatActivity {
             conversationId = otherUserId + "_" + currentUserId;
         }
 
+        // Store references for both participants
+        DatabaseReference userChatsRef = FirebaseDatabase.getInstance().getReference("UserChats");
+        // For current user
+        userChatsRef.child(currentUserId).child(conversationId).setValue(true);
+        // For other user
+        userChatsRef.child(otherUserId).child(conversationId).setValue(true);
+
         // Reference the chat node in Firebase Realtime Database
         chatRef = FirebaseDatabase.getInstance().getReference("Chats").child(conversationId);
 
