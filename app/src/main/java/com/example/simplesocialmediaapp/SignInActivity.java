@@ -57,27 +57,23 @@ public class SignInActivity extends AppCompatActivity {
     Bitmap bitmap;
 
     ConstraintLayout layout_main;
-    CardView cv_signin,cv_register,cv_register_image;
+    CardView cv_signin, cv_register, cv_register_image;
     ImageView imv_register;
-    EditText et_signin_email,et_signin_passwd,et_register_username,et_register_email,et_register_passwd,et_register_confpasswd;
-    Button btn_signin,btn_register;
-    TextView tv_register,tv_signin;
+    EditText et_signin_email, et_signin_passwd, et_register_username, et_register_email, et_register_passwd, et_register_confpasswd;
+    Button btn_signin, btn_register;
+    TextView tv_register, tv_signin;
 
     ActivityResultLauncher<PickVisualMediaRequest> pickVisualMedia =
             registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
-                if (uri != null)
-                {
+                if (uri != null) {
                     imv_register.setImageURI(uri);
                     try {
-                        bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(),uri);
+                        bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), uri);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
-                }
-                else
-                {
-                    if (imv_register.getDrawable() == null)
-                    {
+                } else {
+                    if (imv_register.getDrawable() == null) {
                         Toast.makeText(this, "Please Select an Image", Toast.LENGTH_SHORT).show();
                     }
                 }
@@ -114,13 +110,13 @@ public class SignInActivity extends AppCompatActivity {
                             transition1.addTarget(cv_register);
                             transition1.setDuration(500);
 
-                            TransitionManager.beginDelayedTransition(layout_main,transition1);
+                            TransitionManager.beginDelayedTransition(layout_main, transition1);
                             cv_register.setVisibility(View.VISIBLE);
                         }
                     });
                 }
 
-                TransitionManager.beginDelayedTransition(layout_main,transition);
+                TransitionManager.beginDelayedTransition(layout_main, transition);
                 cv_signin.setVisibility(View.GONE);
                 cv_register.setVisibility(View.VISIBLE);
             }
@@ -142,14 +138,14 @@ public class SignInActivity extends AppCompatActivity {
                             transition1.addTarget(cv_signin);
                             transition1.setDuration(500);
 
-                            TransitionManager.beginDelayedTransition(layout_main,transition1);
+                            TransitionManager.beginDelayedTransition(layout_main, transition1);
                             cv_register.setVisibility(View.GONE);
                             cv_signin.setVisibility(View.VISIBLE);
                         }
                     });
                 }
 
-                TransitionManager.beginDelayedTransition(layout_main,transition);
+                TransitionManager.beginDelayedTransition(layout_main, transition);
                 cv_register.setVisibility(View.GONE);
                 cv_signin.setVisibility(View.VISIBLE);
             }
@@ -168,52 +164,47 @@ public class SignInActivity extends AppCompatActivity {
         btn_signin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(et_signin_email.getText().toString().equals(""))
-                {
+                if(et_signin_email.getText().toString().equals("")) {
                     et_signin_email.setError("Please Enter Email ID");
-                }
-                else if(et_signin_passwd.getText().toString().equals(""))
-                {
+                } else if(et_signin_passwd.getText().toString().equals("")) {
                     et_signin_passwd.setError("Please Enter Password");
-                }
-                else
-                {
-                    mAuth.signInWithEmailAndPassword(et_signin_email.getText().toString(),et_signin_passwd.getText().toString()).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            if (task.isSuccessful())
-                            {
-                                if (!mAuth.getCurrentUser().isEmailVerified())
-                                {
-                                    Intent intent = new Intent(SignInActivity.this,HomeActivity.class);
-                                    startActivity(intent);
-                                    finish();
-                                }
-                                else
-                                {
-                                    mAuth.getCurrentUser().sendEmailVerification().addOnCompleteListener(new OnCompleteListener<Void>() {
-                                        @Override
-                                        public void onComplete(@NonNull Task<Void> task1) {
-                                            if (task1.isSuccessful())
-                                            {
-                                                Toast.makeText(SignInActivity.this, "Email Verification link sent. " +
-                                                        "Please verify email to login", Toast.LENGTH_SHORT).show();
-                                            }
-                                            else
-                                            {
-                                                Toast.makeText(SignInActivity.this, task1.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    mAuth.signInWithEmailAndPassword(et_signin_email.getText().toString(), et_signin_passwd.getText().toString())
+                            .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                                @Override
+                                public void onComplete(@NonNull Task<AuthResult> task) {
+                                    if (task.isSuccessful()) {
+                                        // Admin detection feature added here:
+                                        String userEmail = mAuth.getCurrentUser().getEmail();
+                                        String adminEmail = "xlim398@gmail.com"; // Replace with your admin email if needed
+                                        if (userEmail.equalsIgnoreCase(adminEmail)) {
+                                            Intent intent = new Intent(SignInActivity.this, AdminActivity.class);
+                                            startActivity(intent);
+                                            finish();
+                                        } else {
+                                            // Original behavior unchanged:
+                                            if (!mAuth.getCurrentUser().isEmailVerified()) {
+                                                Intent intent = new Intent(SignInActivity.this, HomeActivity.class);
+                                                startActivity(intent);
+                                                finish();
+                                            } else {
+                                                mAuth.getCurrentUser().sendEmailVerification().addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                    @Override
+                                                    public void onComplete(@NonNull Task<Void> task1) {
+                                                        if (task1.isSuccessful()) {
+                                                            Toast.makeText(SignInActivity.this, "Email Verification link sent. Please verify email to login", Toast.LENGTH_SHORT).show();
+                                                        } else {
+                                                            Toast.makeText(SignInActivity.this, task1.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                                        }
+                                                    }
+                                                });
                                             }
                                         }
-                                    });
-
+                                    } else {
+                                        Toast.makeText(SignInActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                    }
                                 }
-                            }
-                            else
-                            {
-                                Toast.makeText(SignInActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    });
+                            });
                 }
             }
         });
@@ -221,32 +212,19 @@ public class SignInActivity extends AppCompatActivity {
         btn_register.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (imv_register.getDrawable() == null)
-                {
+                if (imv_register.getDrawable() == null) {
                     Toast.makeText(SignInActivity.this, "Please select display picture", Toast.LENGTH_SHORT).show();
-                }
-                else if(et_register_username.getText().toString().equals(""))
-                {
+                } else if(et_register_username.getText().toString().equals("")) {
                     et_register_username.setError("Please Enter Display Name");
-                }
-                else if(et_register_email.getText().toString().equals(""))
-                {
+                } else if(et_register_email.getText().toString().equals("")) {
                     et_register_email.setError("Please Enter Email ID");
-                }
-                else if(et_register_passwd.getText().toString().equals(""))
-                {
+                } else if(et_register_passwd.getText().toString().equals("")) {
                     et_register_passwd.setError("Please Enter Password");
-                }
-                else if(et_register_confpasswd.getText().toString().equals(""))
-                {
+                } else if(et_register_confpasswd.getText().toString().equals("")) {
                     et_register_confpasswd.setError("Please Confirm Your Password");
-                }
-                else if(!et_register_passwd.getText().toString().equals(et_register_confpasswd.getText().toString()))
-                {
+                } else if(!et_register_passwd.getText().toString().equals(et_register_confpasswd.getText().toString())) {
                     Toast.makeText(SignInActivity.this, "Both passwords are not same", Toast.LENGTH_SHORT).show();
-                }
-                else
-                {
+                } else {
                     AlertDialog.Builder builder = new AlertDialog.Builder(SignInActivity.this);
                     builder.setMessage("User Registration in process, Please Wait!!!");
                     builder.setCancelable(false);
@@ -258,8 +236,7 @@ public class SignInActivity extends AppCompatActivity {
                             et_register_passwd.getText().toString()).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
-                            if (task.isSuccessful())
-                            {
+                            if (task.isSuccessful()) {
                                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
                                 byte[] image = baos.toByteArray();
@@ -268,40 +245,32 @@ public class SignInActivity extends AppCompatActivity {
                                 uploadTask.addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                                     @Override
                                     public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task1) {
-                                        if (task1.isSuccessful())
-                                        {
+                                        if (task1.isSuccessful()) {
                                             String path = task1.getResult().getMetadata().getPath();
                                             ProfileModel model = new ProfileModel(mAuth.getCurrentUser().getUid(),
-                                                    et_register_username.getText().toString(),et_register_email.getText().toString(),
-                                                    et_register_passwd.getText().toString(),path);
+                                                    et_register_username.getText().toString(), et_register_email.getText().toString(),
+                                                    et_register_passwd.getText().toString(), path);
                                             collectionReference.document(mAuth.getCurrentUser().getUid()).set(model).addOnCompleteListener(new OnCompleteListener<Void>() {
                                                 @Override
                                                 public void onComplete(@NonNull Task<Void> task2) {
-                                                    if (task2.isSuccessful())
-                                                    {
+                                                    if (task2.isSuccessful()) {
                                                         alertDialog.dismiss();
                                                         Toast.makeText(SignInActivity.this, "User Registration Successful", Toast.LENGTH_SHORT).show();
-                                                    }
-                                                    else
-                                                    {
+                                                    } else {
                                                         alertDialog.dismiss();
                                                         mAuth.getCurrentUser().delete();
                                                         Toast.makeText(SignInActivity.this, task2.getException().getMessage(), Toast.LENGTH_SHORT).show();
                                                     }
                                                 }
                                             });
-                                        }
-                                        else
-                                        {
+                                        } else {
                                             alertDialog.dismiss();
                                             mAuth.getCurrentUser().delete();
                                             Toast.makeText(SignInActivity.this, task1.getException().getMessage(), Toast.LENGTH_SHORT).show();
                                         }
                                     }
                                 });
-                            }
-                            else
-                            {
+                            } else {
                                 alertDialog.dismiss();
                                 Toast.makeText(SignInActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                             }
@@ -312,8 +281,7 @@ public class SignInActivity extends AppCompatActivity {
         });
     }
 
-    void initvar()
-    {
+    void initvar() {
         mAuth = FirebaseAuth.getInstance();
 
         firebaseFirestore = FirebaseFirestore.getInstance();
@@ -344,17 +312,15 @@ public class SignInActivity extends AppCompatActivity {
         tv_signin = findViewById(R.id.tv_signin);
     }
 
-    void checklogin()
-    {
-        if (mAuth.getCurrentUser() != null)
-        {
+    void checklogin() {
+        if (mAuth.getCurrentUser() != null) {
 //            if (mAuth.getCurrentUser().isEmailVerified())
 //            {
 //                Intent intent = new Intent(SignInActivity.this,HomeActivity.class);
 //                startActivity(intent);
 //                finish();
 //            }
-            Intent intent = new Intent(SignInActivity.this,HomeActivity.class);
+            Intent intent = new Intent(SignInActivity.this, HomeActivity.class);
             startActivity(intent);
             finish();
         }
