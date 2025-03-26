@@ -12,7 +12,10 @@
         android:layout_height="wrap_content"
         android:text="Sample Message"
         android:textSize="16sp"
-        android:textColor="@android:color/black" />
+        android:textColor="@android:color/black"
+        android:padding="8dp"
+        android:layout_marginBottom="4dp"
+        android:layout_gravity="start" />
 
     <TextView
         android:id="@+id/textTimestamp"
@@ -20,5 +23,6 @@
         android:layout_height="wrap_content"
         android:text="Timestamp"
         android:textSize="12sp"
-        android:textColor="@android:color/darker_gray" />
+        android:textColor="@android:color/darker_gray"
+        android:layout_gravity="start" />
 </LinearLayout>
