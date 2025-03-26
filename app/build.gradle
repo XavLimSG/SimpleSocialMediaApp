@@ -52,6 +52,13 @@ dependencies {
 
     // Add this at the bottom for location
     apply plugin: 'com.google.gms.google-services'
+    //google map SDK
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
+    // Firebase & Maps Dependencies
+    implementation 'com.google.firebase:firebase-database'
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
+
+
 
     implementation 'com.github.bumptech.glide:glide:4.16.0'
 

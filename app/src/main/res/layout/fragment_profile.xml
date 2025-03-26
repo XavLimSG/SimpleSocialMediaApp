@@ -191,10 +191,10 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <Button
-        android:id="@+id/btn_chat"
+        android:id="@+id/btn_view_location"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Message"
+        android:text="View My Location"
         android:layout_marginTop="12dp"
         app:layout_constraintTop_toBottomOf="@id/btn_share_location"
         app:layout_constraintStart_toStartOf="parent"
@@ -203,10 +203,20 @@
 
     <!-- RecyclerView (User's Posts) -->
 
+    <Button
+        android:id="@+id/btn_chat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Message"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.495"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_view_location" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_profile_content"
-        android:layout_width="405dp"
-        android:layout_height="319dp"
+        android:layout_width="407dp"
+        android:layout_height="211dp"
         android:layout_margin="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/btn_chat"

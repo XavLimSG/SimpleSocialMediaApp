@@ -43,6 +43,8 @@ import android.widget.Button;
 import android.widget.Toast;
 import android.content.Intent;
 import com.example.simplesocialmediaapp.SignInActivity;
+import com.example.simplesocialmediaapp.MapsActivity;
+
 
 
 
@@ -59,6 +61,8 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.firebase.database.FirebaseDatabase;
 import com.example.simplesocialmediaapp.Models.LocationModel;
+import android.widget.Button;
+
 
 
 
@@ -79,6 +83,8 @@ public class ProfileFragment extends Fragment {
      */
     private Button btnShareLocation;
     private FusedLocationProviderClient fusedLocationClient;
+
+
 
 
     FirebaseStorage firebaseStorage;
@@ -120,6 +126,12 @@ public class ProfileFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         btnLogout = view.findViewById(R.id.btn_logout); // Find Log Out button
+
+        Button btnViewLocation = view.findViewById(R.id.btn_view_location);
+        btnViewLocation.setOnClickListener(v -> {
+            Intent intent = new Intent(getContext(), MapsActivity.class);
+            startActivity(intent);
+        });
 
 
         // location code
@@ -290,5 +302,8 @@ public class ProfileFragment extends Fragment {
                     }
                 });
     }
+
+
+
 
 }
