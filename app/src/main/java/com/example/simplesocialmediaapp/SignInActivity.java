@@ -36,6 +36,8 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
@@ -174,17 +176,33 @@ public class SignInActivity extends AppCompatActivity {
                                 @Override
                                 public void onComplete(@NonNull Task<AuthResult> task) {
                                     if (task.isSuccessful()) {
-                                        // Admin detection feature added here:
+                                        // Admin detection feature: pass isAdmin to HomeActivity
                                         String userEmail = mAuth.getCurrentUser().getEmail();
-                                        String adminEmail = "xlim398@gmail.com"; // Replace with your admin email if needed
+                                        String adminEmail = "admin@gmail.com"; // Replace with your admin email if needed
                                         if (userEmail.equalsIgnoreCase(adminEmail)) {
-                                            Intent intent = new Intent(SignInActivity.this, AdminActivity.class);
-                                            startActivity(intent);
-                                            finish();
-                                        } else {
-                                            // Original behavior unchanged:
+                                            // Admin user -> isAdmin = true
                                             if (!mAuth.getCurrentUser().isEmailVerified()) {
                                                 Intent intent = new Intent(SignInActivity.this, HomeActivity.class);
+                                                intent.putExtra("isAdmin", true);
+                                                startActivity(intent);
+                                                finish();
+                                            } else {
+                                                mAuth.getCurrentUser().sendEmailVerification().addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                    @Override
+                                                    public void onComplete(@NonNull Task<Void> task1) {
+                                                        if (task1.isSuccessful()) {
+                                                            Toast.makeText(SignInActivity.this, "Email Verification link sent. Please verify email to login", Toast.LENGTH_SHORT).show();
+                                                        } else {
+                                                            Toast.makeText(SignInActivity.this, task1.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        } else {
+                                            // Normal user -> isAdmin = false
+                                            if (!mAuth.getCurrentUser().isEmailVerified()) {
+                                                Intent intent = new Intent(SignInActivity.this, HomeActivity.class);
+                                                intent.putExtra("isAdmin", false);
                                                 startActivity(intent);
                                                 finish();
                                             } else {
@@ -253,11 +271,24 @@ public class SignInActivity extends AppCompatActivity {
                                             collectionReference.document(mAuth.getCurrentUser().getUid()).set(model).addOnCompleteListener(new OnCompleteListener<Void>() {
                                                 @Override
                                                 public void onComplete(@NonNull Task<Void> task2) {
+                                                    alertDialog.dismiss();
                                                     if (task2.isSuccessful()) {
-                                                        alertDialog.dismiss();
+                                                        // ─────────────────────────────────────
+                                                        //  Add Email→UID mapping for circles
+                                                        // ─────────────────────────────────────
+                                                        DatabaseReference emailToUidRef = FirebaseDatabase.getInstance()
+                                                                .getReference("EmailToUid");
+                                                        // replace '.' in email with '_dot_' for DB keys
+                                                        String emailKey = et_register_email.getText()
+                                                                .toString()
+                                                                .toLowerCase()
+                                                                .replace(".", "_dot_");
+
+                                                        emailToUidRef.child(emailKey)
+                                                                .setValue(mAuth.getCurrentUser().getUid());
+
                                                         Toast.makeText(SignInActivity.this, "User Registration Successful", Toast.LENGTH_SHORT).show();
                                                     } else {
-                                                        alertDialog.dismiss();
                                                         mAuth.getCurrentUser().delete();
                                                         Toast.makeText(SignInActivity.this, task2.getException().getMessage(), Toast.LENGTH_SHORT).show();
                                                     }
@@ -314,12 +345,6 @@ public class SignInActivity extends AppCompatActivity {
 
     void checklogin() {
         if (mAuth.getCurrentUser() != null) {
-//            if (mAuth.getCurrentUser().isEmailVerified())
-//            {
-//                Intent intent = new Intent(SignInActivity.this,HomeActivity.class);
-//                startActivity(intent);
-//                finish();
-//            }
             Intent intent = new Intent(SignInActivity.this, HomeActivity.class);
             startActivity(intent);
             finish();

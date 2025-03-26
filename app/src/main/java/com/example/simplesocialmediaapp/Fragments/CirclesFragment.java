@@ -1,66 +1,137 @@
 package com.example.simplesocialmediaapp.Fragments;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.simplesocialmediaapp.Adapters.CirclesAdapter;
+import com.example.simplesocialmediaapp.Models.CircleModel;
 import com.example.simplesocialmediaapp.R;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.*;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link CirclesFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import java.util.ArrayList;
+
 public class CirclesFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+    private RecyclerView rvCircles;
+    private FloatingActionButton fabAddCircle;
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+    private boolean isAdmin = false;
+    private String currentUserUid;
 
-    public CirclesFragment() {
-        // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment CirclesFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static CirclesFragment newInstance(String param1, String param2) {
-        CirclesFragment fragment = new CirclesFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
+    private DatabaseReference circlesRef;
+    private ArrayList<CircleModel> circlesList;
+    private CirclesAdapter adapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+
+        // Grab isAdmin from the parent activity
+        if (getActivity() != null && getActivity().getIntent() != null) {
+            isAdmin = getActivity().getIntent().getBooleanExtra("isAdmin", false);
         }
+        currentUserUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        // Realtime Database reference
+        circlesRef = FirebaseDatabase.getInstance().getReference("Circles");
+
+        circlesList = new ArrayList<>();
+        adapter = new CirclesAdapter(circlesList, isAdmin, currentUserUid);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_circles, container, false);
+        View item = inflater.inflate(R.layout.fragment_circles, container, false);
+
+        rvCircles = item.findViewById(R.id.rv_circles);
+        rvCircles.setLayoutManager(new LinearLayoutManager(getContext()));
+        rvCircles.setAdapter(adapter);
+
+        fabAddCircle = item.findViewById(R.id.fab_add_circle);
+        fabAddCircle.setVisibility(isAdmin ? View.VISIBLE : View.GONE);
+
+        fabAddCircle.setOnClickListener(v -> showCreateCircleDialog());
+
+        loadCircles();
+
+        return item;
+    }
+
+    private void loadCircles() {
+        // Show all circles if admin, else only circles that contain the user's UID
+        circlesRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                circlesList.clear();
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    CircleModel circle = ds.getValue(CircleModel.class);
+                    if (circle != null) {
+                        // Admin sees all, students see only membership circles
+                        if (isAdmin || (circle.getMembers() != null && circle.getMembers().contains(currentUserUid))) {
+                            circlesList.add(circle);
+                        }
+                    }
+                }
+                adapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(getContext(), "Failed to load circles: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void showCreateCircleDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Create Circle");
+
+        final EditText input = new EditText(getContext());
+        input.setHint("Enter circle name");
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        builder.setView(input);
+
+        builder.setPositiveButton("Create", (dialog, which) -> {
+            String circleName = input.getText().toString().trim();
+            if (!circleName.isEmpty()) {
+                createCircle(circleName);
+            }
+        });
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
+
+    private void createCircle(String circleName) {
+        String circleId = circlesRef.push().getKey();
+        if (circleId == null) return;
+
+        // By default, add teacher to the circle
+        ArrayList<String> members = new ArrayList<>();
+        members.add(currentUserUid);
+
+        CircleModel newCircle = new CircleModel(circleId, circleName, members);
+        circlesRef.child(circleId).setValue(newCircle).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                Toast.makeText(getContext(), "Circle created", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getContext(), "Failed to create circle", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

@@ -3,7 +3,6 @@ package com.example.simplesocialmediaapp;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -30,19 +29,35 @@ public class HomeActivity extends AppCompatActivity {
     TabLayout apptabs;
     ViewPager2 pager;
     ViewPagerFragmentAdapter adapter;
+    boolean isAdmin = false; // Flag to differentiate teacher vs. student
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_home);
+
+        // For edge-to-edge layout
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
+        // Read admin flag passed from SignInActivity
+        isAdmin = getIntent().getBooleanExtra("isAdmin", false);
+
         initvar();
+
+        // If the user is not admin, remove the 3rd tab ("Create") from the TabLayout.
+        // The "Create" tab is index 2 (0=Home,1=Circles,2=Create,3=Chats,4=Profile).
+        if (!isAdmin && apptabs.getTabCount() > 2) {
+            apptabs.removeTabAt(2);
+        }
+
+        // Rebuild the ViewPager adapter with the updated tab count and admin flag
+        adapter = new ViewPagerFragmentAdapter(this, apptabs.getTabCount(), isAdmin);
+        pager.setAdapter(adapter);
 
         settabs();
 
@@ -53,77 +68,86 @@ public class HomeActivity extends AppCompatActivity {
                 apptabs.selectTab(apptabs.getTabAt(position));
             }
         });
-
     }
 
-    void initvar()
-    {
+    void initvar() {
         mAuth = FirebaseAuth.getInstance();
-
         apptabs = findViewById(R.id.apptabs);
         pager = findViewById(R.id.pager);
-        adapter = new ViewPagerFragmentAdapter(this,apptabs.getTabCount());
-        pager.setAdapter(adapter);
-        pager.setOffscreenPageLimit(5);
     }
 
-    void settabs()
-    {
+    void settabs() {
         apptabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
-                tab.getIcon().setColorFilter(Color.GREEN, PorterDuff.Mode.SRC_IN);
+                if (tab.getIcon() != null) {
+                    tab.getIcon().setColorFilter(Color.GREEN, PorterDuff.Mode.SRC_IN);
+                }
                 pager.setCurrentItem(tab.getPosition());
             }
 
             @Override
             public void onTabUnselected(TabLayout.Tab tab) {
-                tab.getIcon().setColorFilter(Color.parseColor("#4F78D0"), PorterDuff.Mode.SRC_IN);
+                if (tab.getIcon() != null) {
+                    tab.getIcon().setColorFilter(Color.parseColor("#4F78D0"), PorterDuff.Mode.SRC_IN);
+                }
             }
 
             @Override
             public void onTabReselected(TabLayout.Tab tab) {
-
+                // Optional: handle reselect
             }
         });
 
-        TabLayout.Tab tab = apptabs.getTabAt(0);
-        tab.getIcon().setColorFilter(Color.GREEN, PorterDuff.Mode.SRC_IN);
-        apptabs.selectTab(tab);
-        pager.setCurrentItem(0);
+        if (apptabs.getTabAt(0) != null) {
+            if (apptabs.getTabAt(0).getIcon() != null) {
+                apptabs.getTabAt(0).getIcon().setColorFilter(Color.GREEN, PorterDuff.Mode.SRC_IN);
+            }
+            apptabs.selectTab(apptabs.getTabAt(0));
+            pager.setCurrentItem(0);
+        }
     }
 
-    public static class ViewPagerFragmentAdapter extends FragmentStateAdapter{
-        int size;
-        ProfileFragment profileFragment;
+    // Custom adapter that changes the number of fragments based on isAdmin
+    public static class ViewPagerFragmentAdapter extends FragmentStateAdapter {
 
-        public ViewPagerFragmentAdapter(@NonNull FragmentActivity fragmentActivity,int size) {
+        int tabCount;
+        boolean isAdmin;
+
+        public ViewPagerFragmentAdapter(@NonNull FragmentActivity fragmentActivity, int tabCount, boolean isAdmin) {
             super(fragmentActivity);
-            this.size = size;
-            profileFragment = new ProfileFragment();
+            this.tabCount = tabCount;
+            this.isAdmin = isAdmin;
         }
 
         @NonNull
         @Override
         public Fragment createFragment(int position) {
-            switch (position){
-                case 0:
-                    return new HomeFragment();
-                case 1:
-                    return new CirclesFragment();
-                case 2:
-                    return new CreateFragment();
-                case 3:
-                    return new ChatsFragment();
-                case 4:
-                    return new ProfileFragment();
+            if (isAdmin) {
+                // Teacher: All 5 tabs are shown (index: 0=Home,1=Circles,2=Create,3=Chats,4=Profile)
+                switch (position) {
+                    case 0: return new HomeFragment();
+                    case 1: return new CirclesFragment();
+                    case 2: return new CreateFragment();
+                    case 3: return new ChatsFragment();
+                    case 4: return new ProfileFragment();
+                    default: return new HomeFragment();
+                }
+            } else {
+                // Student: 4 tabs remain (0=Home,1=Circles,2=Chats,3=Profile)
+                switch (position) {
+                    case 0: return new HomeFragment();
+                    case 1: return new CirclesFragment();
+                    case 2: return new ChatsFragment();
+                    case 3: return new ProfileFragment();
+                    default: return new HomeFragment();
+                }
             }
-            return new HomeFragment();
         }
 
         @Override
         public int getItemCount() {
-            return size;
+            return tabCount;
         }
     }
 }
