@@ -35,7 +35,23 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     @Override
     public void onBindViewHolder(@NonNull ChatViewHolder holder, int position) {
         MessageModel message = messages.get(position);
-        holder.textMessage.setText(message.getMessage());
+        // holder.textMessage.setText(message.getMessage());
+        if (message.isLocation()) {
+            holder.textMessage.setText(" View Location");
+            holder.textMessage.setTextColor(Color.BLUE); // Optional: make it stand out
+
+            holder.textMessage.setOnClickListener(v -> {
+                android.content.Intent intent = new android.content.Intent(v.getContext(), com.example.simplesocialmediaapp.MapsActivity.class);
+                intent.putExtra("lat", message.getLatitude());
+                intent.putExtra("lng", message.getLongitude());
+                v.getContext().startActivity(intent);
+            });
+        } else {
+            holder.textMessage.setText(message.getMessage());
+            holder.textMessage.setTextColor(Color.BLACK); // Reset color for normal messages
+            holder.textMessage.setOnClickListener(null);  // Remove previous click listener
+        }
+
 
         // Check if the message is sent or received and set gravity and background accordingly
         if (message.getSenderId().equals(FirebaseAuth.getInstance().getCurrentUser().getUid())) {

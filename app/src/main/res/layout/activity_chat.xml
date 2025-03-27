@@ -26,6 +26,21 @@
         app:layout_constraintBottom_toBottomOf="parent"
         android:padding="8dp" />
 
+
+    <!-- Share Location button -->
+    <ImageButton
+        android:id="@+id/buttonShareLocation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/location"
+    android:background="?attr/selectableItemBackgroundBorderless"
+    android:contentDescription="Share Location"
+    app:layout_constraintStart_toEndOf="@id/editTextMessage"
+    app:layout_constraintEnd_toStartOf="@id/buttonSend"
+    app:layout_constraintBottom_toBottomOf="parent" />
+
+
+
     <ImageButton
         android:id="@+id/buttonSend"
         android:layout_width="wrap_content"

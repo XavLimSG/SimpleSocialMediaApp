@@ -20,6 +20,16 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+// loation stuff
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
+import android.widget.ImageButton;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,15 +47,25 @@ public class ChatActivity extends AppCompatActivity {
     private String currentUserId;
     private String otherUserId;
 
+    private ImageButton buttonShareLocation; // location share button
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat); // Make sure this layout exists
 
+
         // Initialize views
         recyclerView = findViewById(R.id.recyclerView);
         editTextMessage = findViewById(R.id.editTextMessage);
         buttonSend = findViewById(R.id.buttonSend);
+        // location stuff
+        buttonShareLocation = findViewById(R.id.buttonShareLocation);
+        buttonShareLocation.setOnClickListener(v -> {
+            shareLocation();
+        });
+
+
 
         // Get current user and recipient IDs
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -111,4 +131,52 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
     }
+
+    // location stuff
+    private void shareLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1001);
+            return;
+        }
+
+        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+
+        if (location != null) {
+            double lat = location.getLatitude();
+            double lng = location.getLongitude();
+
+            MessageModel locationMessage = new MessageModel(
+                    currentUserId,
+                    otherUserId,
+                    " Shared a location",
+                    System.currentTimeMillis()
+            );
+
+            locationMessage.setLatitude(lat);
+            locationMessage.setLongitude(lng);
+            locationMessage.setLocation(true); // mark as location message
+
+            chatRef.push().setValue(locationMessage);
+            Toast.makeText(this, "Location sent!", Toast.LENGTH_SHORT).show(); // Optional
+        } else {
+            Toast.makeText(this, "Unable to fetch location", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 1001 && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            shareLocation(); // Try again now that permission is granted
+        } else {
+            Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+
 }

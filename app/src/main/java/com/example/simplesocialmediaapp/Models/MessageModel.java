@@ -6,6 +6,11 @@ public class MessageModel {
     private String message;
     private long timestamp;
 
+    // location in chat
+    private Double latitude;
+    private Double longitude;
+    private boolean isLocation; // true = location msg
+
     // No-argument constructor required for Firebase serialization
     public MessageModel() {
     }
@@ -17,7 +22,19 @@ public class MessageModel {
         this.timestamp = timestamp;
     }
 
-    // Getters and setters
+    // getters and setters for location
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
+
+    public boolean isLocation() { return isLocation; }
+    public void setLocation(boolean location) { isLocation = location; }
+
+
+
+        // Getters and setters
     public String getSenderId() {
         return senderId;
     }
