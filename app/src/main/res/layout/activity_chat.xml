@@ -21,34 +21,36 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Type a message..."
+        android:padding="8dp"
+        android:layout_margin="4dp"
+        android:background="@drawable/edit_text_background"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/buttonSend"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:padding="8dp" />
-
+        app:layout_constraintEnd_toStartOf="@id/buttonShareLocation"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <!-- Share Location button -->
     <ImageButton
         android:id="@+id/buttonShareLocation"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_margin="4dp"
         android:src="@drawable/location"
-    android:background="?attr/selectableItemBackgroundBorderless"
-    android:contentDescription="Share Location"
-    app:layout_constraintStart_toEndOf="@id/editTextMessage"
-    app:layout_constraintEnd_toStartOf="@id/buttonSend"
-    app:layout_constraintBottom_toBottomOf="parent" />
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Share Location"
+        app:layout_constraintEnd_toStartOf="@id/buttonSend"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
-
-
+    <!-- Send Message button -->
     <ImageButton
         android:id="@+id/buttonSend"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_margin="4dp"
         android:src="@drawable/send_message"
-    android:background="?attr/selectableItemBackgroundBorderless"
-    app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintBottom_toBottomOf="parent"
-    android:contentDescription="Send" />
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Send"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
