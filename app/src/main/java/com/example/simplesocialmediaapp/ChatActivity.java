@@ -149,7 +149,7 @@ public class ChatActivity extends AppCompatActivity {
                 chatRef.push().setValue(message);
                 editTextMessage.setText("");
 
-                sendToTelegram(msg);
+                sendToTelegram("in-app chat" + msg);
             }
         });
     }
