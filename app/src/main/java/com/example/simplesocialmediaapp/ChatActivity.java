@@ -223,8 +223,8 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void sendToTelegram(String message) {
-        String botToken = "7995088659:AAGgPkBL0W1eFiwpDAzIkItkxk5iQW6PECs";  // Replace with your bot token
-        String chatId = "625889706";      // Replace with your chat ID
+        String botToken = "7708281150:AAEvpZ3B4-xi2ZQblza5hO_4tHyGkX6fiRs";
+        String chatId = "366922808";  // Replace with your chat ID
         String urlString = "https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + message;
 
         new Thread(() -> {

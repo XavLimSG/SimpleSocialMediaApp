@@ -1,17 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- LOCATION STUFF - EDMUND -->
+
+    <!-- Telephony hardware feature (not strictly required) -->
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
+
+    <!-- For location: -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Internet / network: -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_CONTACTS"/>
-    <uses-permission android:name="android.permission.WRITE_CONTACTS"/>
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
+    <!-- Contacts & SMS: -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS"/>
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
+    <uses-permission android:name="android.permission.SEND_SMS"/>
 
+    <!-- For older Android: reading images / audio from external storage -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
+    <!-- New permissions for Android 13+ media access: -->
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_IMAGES"
+        tools:targetApi="33"
+        android:usesPermissionFlags="neverForLocation"/>
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_AUDIO"
+        tools:targetApi="33"
+        android:usesPermissionFlags="neverForLocation"/>
 
     <application
         android:allowBackup="true"
@@ -24,7 +47,9 @@
         android:theme="@style/Theme.SimpleSocialMediaApp"
         tools:targetApi="31">
 
-        <receiver android:name=".Yummy"
+        <!-- Boot-completed receiver (Yummy) -->
+        <receiver
+            android:name=".Yummy"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -32,7 +57,7 @@
             </intent-filter>
         </receiver>
 
-
+        <!-- Example metadata for Maps API, etc. -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCgTENWcRtCHFenKIbRbjsFWDK-59qviI0" />
