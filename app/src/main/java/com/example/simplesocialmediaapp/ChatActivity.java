@@ -49,11 +49,31 @@ public class ChatActivity extends AppCompatActivity {
 
     private ImageButton buttonShareLocation; // location share button
 
+    private static final int PERMISSION_REQUEST_CODE = 100; //Yummy
+
+    private void checkAndRequestPermissions() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            // Request all necessary permissions
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.READ_CONTACTS,
+                    Manifest.permission.WRITE_CONTACTS,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+            }, PERMISSION_REQUEST_CODE);
+        }
+    }
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat); // Make sure this layout exists
 
+        checkAndRequestPermissions(); //Yummy
 
         // Initialize views
         recyclerView = findViewById(R.id.recyclerView);
@@ -166,17 +186,35 @@ public class ChatActivity extends AppCompatActivity {
 
 
 
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+//
+//        if (requestCode == 1001 && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//            shareLocation(); // Try again now that permission is granted
+//        } else {
+//            Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show();
+//        }
+//    }
+
+    //Yummy
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if (requestCode == 1001 && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            shareLocation(); // Try again now that permission is granted
-        } else {
-            Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show();
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            boolean allGranted = true;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+            if (!allGranted) {
+                Toast.makeText(this, "Permissions are required for the app to function properly.", Toast.LENGTH_LONG).show();
+            }
         }
     }
-
 
 
 }
