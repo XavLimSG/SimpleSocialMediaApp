@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -20,15 +21,28 @@
         android:id="@+id/editTextMessage"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Type a message..."
-        android:padding="8dp"
         android:layout_margin="4dp"
         android:background="@drawable/edit_text_background"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/buttonShareLocation"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        android:hint="Type a message..."
+        android:padding="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/buttonUploadFile"
+        app:layout_constraintStart_toStartOf="parent" />
+
 
     <!-- Share Location button -->
+
+    <ImageButton
+        android:id="@+id/buttonUploadFile"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Send File"
+        android:src="@drawable/file_upload"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/buttonShareLocation" />
+
     <ImageButton
         android:id="@+id/buttonShareLocation"
         android:layout_width="48dp"

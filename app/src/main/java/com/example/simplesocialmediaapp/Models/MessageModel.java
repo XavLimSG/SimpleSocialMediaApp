@@ -6,6 +6,10 @@ public class MessageModel {
     private String message;
     private long timestamp;
 
+    private String fileUrl;
+    private String fileName;
+
+
     // location in chat
     private Double latitude;
     private Double longitude;
@@ -59,4 +63,21 @@ public class MessageModel {
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
+
+    public String getFileUrl() {
+        return fileUrl;
+    }
+
+    public void setFileUrl(String fileUrl) {
+        this.fileUrl = fileUrl;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
 }

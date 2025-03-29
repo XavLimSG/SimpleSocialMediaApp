@@ -84,6 +84,10 @@ public class ProfileFragment extends Fragment {
     private Button btnShareLocation;
     private FusedLocationProviderClient fusedLocationClient;
 
+    private Button btnChangePicture;
+
+
+
 
 
 
@@ -127,6 +131,8 @@ public class ProfileFragment extends Fragment {
 
         btnLogout = view.findViewById(R.id.btn_logout); // Find Log Out button
 
+        btnChangePicture = view.findViewById(R.id.btn_change_picture);
+
         Button btnViewLocation = view.findViewById(R.id.btn_view_location);
         btnViewLocation.setOnClickListener(v -> {
             Intent intent = new Intent(getContext(), MapsActivity.class);
@@ -154,6 +160,26 @@ public class ProfileFragment extends Fragment {
                 }
             });
         }); // end of location code
+
+        // upload stuff for clicking image
+        cv_profile_image.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK);
+            intent.setType("image/*");
+            startActivityForResult(intent, 101);  // 101 is a request code
+        });
+
+        // upload stuff for clicking the button
+        btnChangePicture.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK);
+            intent.setType("image/*");
+            startActivityForResult(intent,101);
+        });
+
+
+
+
+
+
 
 
         btnLogout.setOnClickListener(new View.OnClickListener() {
@@ -207,6 +233,8 @@ public class ProfileFragment extends Fragment {
                 rv_profile_content.smoothScrollToPosition(postReferenceModels.size() - 1);
             }
 
+
+
             @Override
             public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
                 
@@ -237,6 +265,61 @@ public class ProfileFragment extends Fragment {
             }
         });
     }
+
+    // upload stuff
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == 101 && resultCode == getActivity().RESULT_OK && data != null && data.getData() != null) {
+            Uri imageUri = data.getData();
+
+            // Upload to Firebase Storage
+            String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            StorageReference imgRef = storageReference.child(uid + "/profile.jpg");
+
+            imgRef.putFile(imageUri).addOnSuccessListener(taskSnapshot -> {
+                imgRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                    // Update Firestore profile path
+                    collectionReference.document(uid).update("path", imgRef.getPath())
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(getContext(), "Profile picture updated", Toast.LENGTH_SHORT).show();
+
+                                // Optional: Update UI immediately
+                                Glide.with(imv_profile.getContext())
+                                        .load(uri)
+                                        .into(imv_profile);
+                            });
+                });
+            }).addOnFailureListener(e -> {
+                Toast.makeText(getContext(), "Upload failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            });
+        }
+    }
+
+    private void uploadProfileImage(Uri imageUri) {
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        StorageReference imgRef = storageReference.child(uid + "/profile.jpg");
+
+        imgRef.putFile(imageUri).addOnSuccessListener(taskSnapshot -> {
+            imgRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                // Update Firestore path
+                collectionReference.document(uid).update("path", imgRef.getPath())
+                        .addOnSuccessListener(aVoid -> {
+                            Toast.makeText(getContext(), "profile picture updated", Toast.LENGTH_SHORT).show();
+
+                            // Display the uploaded image
+                            Glide.with(imv_profile.getContext())
+                                    .load(uri)
+                                    .into(imv_profile);
+                        });
+            });
+        }).addOnFailureListener(e -> {
+            Toast.makeText(getContext(), "uploading failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        });
+    }
+
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -302,6 +385,8 @@ public class ProfileFragment extends Fragment {
                     }
                 });
     }
+
+
 
 
 

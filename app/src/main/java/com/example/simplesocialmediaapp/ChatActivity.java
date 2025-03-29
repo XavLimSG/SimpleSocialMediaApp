@@ -28,6 +28,14 @@ import com.google.firebase.database.FirebaseDatabase;
 // Firestore
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+
+
+import android.content.Intent;
+import android.net.Uri;
+import androidx.annotation.Nullable;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,10 +44,16 @@ public class ChatActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 100;
 
+    private static final int FILE_PICK_REQUEST = 200;
+
+
     private RecyclerView recyclerView;
     private EditText editTextMessage;
     private ImageButton buttonSend;
     private ImageButton buttonShareLocation;
+    private ImageButton buttonUploadFile;
+
+
 
     private ChatAdapter chatAdapter;
     private List<MessageModel> messageList;
@@ -53,6 +67,8 @@ public class ChatActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
+
+
 
         // 1) Setup the ActionBar
         if (getSupportActionBar() != null) {
@@ -68,6 +84,7 @@ public class ChatActivity extends AppCompatActivity {
         editTextMessage = findViewById(R.id.editTextMessage);
         buttonSend = findViewById(R.id.buttonSend);
         buttonShareLocation = findViewById(R.id.buttonShareLocation);
+        buttonUploadFile = findViewById(R.id.buttonUploadFile);
 
         // 4) Identify the current user and the other user
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -144,7 +161,16 @@ public class ChatActivity extends AppCompatActivity {
 
         // 12) "Share Location" logic
         buttonShareLocation.setOnClickListener(v -> shareLocation());
+        // 133) "file upload" logic
+        buttonUploadFile.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("*/*");
+            startActivityForResult(Intent.createChooser(intent, "Select File"), FILE_PICK_REQUEST);
+        });
+
+
     }
+
 
     /**
      * If we need location permissions, request them
@@ -159,6 +185,7 @@ public class ChatActivity extends AppCompatActivity {
             );
         }
     }
+
 
     /**
      * Handle user’s response to permission prompts
@@ -230,6 +257,33 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+    private void openFilePicker() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("*/*"); // To allow all file types
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        startActivityForResult(Intent.createChooser(intent, "Select File"), 2001);
+    }
+
+    private void uploadFile(Uri fileUri) {
+        String fileName = System.currentTimeMillis() + "_" + fileUri.getLastPathSegment();
+        StorageReference storageRef = FirebaseStorage.getInstance().getReference("chat_files/" + conversationId + "/" + fileName);
+
+        storageRef.putFile(fileUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    storageRef.getDownloadUrl().addOnSuccessListener(downloadUri -> {
+                        MessageModel fileMessage = new MessageModel(currentUserId, otherUserId, "Sent a file", System.currentTimeMillis());
+                        fileMessage.setFileUrl(downloadUri.toString());
+                        fileMessage.setFileName(fileName);
+                        chatRef.push().setValue(fileMessage);
+                        Toast.makeText(this, "File sent!", Toast.LENGTH_SHORT).show();
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Upload failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+
     /**
      * Load the other user's name from Firestore "Profiles" & set the ActionBar title
      */
@@ -278,6 +332,22 @@ public class ChatActivity extends AppCompatActivity {
             }
         }).start();
     }
+
+    // handle the file result
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == FILE_PICK_REQUEST && resultCode == RESULT_OK && data != null) {
+            Uri selectedFile = data.getData();
+            if (selectedFile != null) {
+                uploadFile(selectedFile);
+            }
+        }
+    }
+
+
+
     /**
      * Handle the up arrow in the action bar
      */
