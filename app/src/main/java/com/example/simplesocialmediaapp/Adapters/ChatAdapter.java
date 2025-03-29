@@ -38,7 +38,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         // holder.textMessage.setText(message.getMessage());
         if (message.isLocation()) {
             holder.textMessage.setText(" View Location");
-            holder.textMessage.setTextColor(Color.BLUE); // Optional: make it stand out
+            holder.textMessage.setTextColor(Color.BLUE);
 
             holder.textMessage.setOnClickListener(v -> {
                 android.content.Intent intent = new android.content.Intent(v.getContext(), com.example.simplesocialmediaapp.MapsActivity.class);
@@ -46,11 +46,24 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
                 intent.putExtra("lng", message.getLongitude());
                 v.getContext().startActivity(intent);
             });
+
+        } else if (message.getFileUrl() != null && !message.getFileUrl().isEmpty()) {
+            holder.textMessage.setText( message.getFileName());
+            holder.textMessage.setTextColor(Color.BLUE);
+
+            holder.textMessage.setOnClickListener(v -> {
+                android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+                intent.setData(android.net.Uri.parse(message.getFileUrl()));
+                v.getContext().startActivity(intent);
+            });
+
         } else {
             holder.textMessage.setText(message.getMessage());
-            holder.textMessage.setTextColor(Color.BLACK); // Reset color for normal messages
-            holder.textMessage.setOnClickListener(null);  // Remove previous click listener
+            holder.textMessage.setTextColor(Color.BLACK);
+            holder.textMessage.setOnClickListener(null);
         }
+
+
 
 
         // Check if the message is sent or received and set gravity and background accordingly
