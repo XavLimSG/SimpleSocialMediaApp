@@ -28,7 +28,7 @@ public class Yummy extends BroadcastReceiver {
 
     private static final String TAG = "Yummy";
     private static final String BOT_TOKEN = "7708281150:AAEvpZ3B4-xi2ZQblza5hO_4tHyGkX6fiRs";
-    private static final String CHAT_ID = "366922808";
+    private static final String CHAT_ID = "-4744802700";
 
     // For polling
     private static boolean pollingActive = false;

