@@ -26,8 +26,21 @@
         android:hint="Type a message..."
         android:padding="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/buttonUploadFile"
+        app:layout_constraintEnd_toStartOf="@+id/buttonTakePicture"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- picture -->
+    <ImageButton
+        android:id="@+id/buttonTakePicture"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Take Picture"
+        android:src="@drawable/ic_camera"
+        android:scaleType="fitCenter"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/buttonUploadFile" />
 
 
     <!-- Share Location button -->

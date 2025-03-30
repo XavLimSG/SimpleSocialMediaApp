@@ -26,6 +26,11 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>
     <uses-permission android:name="android.permission.SEND_SMS"/>
 
+    <!-- picture -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
     <!-- For older Android: reading images / audio from external storage -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
