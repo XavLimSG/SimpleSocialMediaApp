@@ -36,6 +36,7 @@ import android.content.Intent;
 import android.net.Uri;
 import androidx.annotation.Nullable;
 
+import java.io.ByteArrayOutputStream;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +46,10 @@ public class ChatActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 100;
 
     private static final int FILE_PICK_REQUEST = 200;
+
+    private static final int CAMERA_CAPTURE_REQUEST = 300;
+    private ImageButton buttonTakePicture;
+
 
 
     private RecyclerView recyclerView;
@@ -85,6 +90,7 @@ public class ChatActivity extends AppCompatActivity {
         buttonSend = findViewById(R.id.buttonSend);
         buttonShareLocation = findViewById(R.id.buttonShareLocation);
         buttonUploadFile = findViewById(R.id.buttonUploadFile);
+        buttonTakePicture = findViewById(R.id.buttonTakePicture);
 
         // 4) Identify the current user and the other user
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -168,6 +174,16 @@ public class ChatActivity extends AppCompatActivity {
             startActivityForResult(Intent.createChooser(intent, "Select File"), FILE_PICK_REQUEST);
         });
 
+        buttonTakePicture.setOnClickListener(v -> {
+            Intent intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+            if (intent.resolveActivity(getPackageManager()) != null) {
+                startActivityForResult(intent, CAMERA_CAPTURE_REQUEST);
+            } else {
+                Toast.makeText(this, "No camera app available", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
 
     }
 
@@ -184,6 +200,16 @@ public class ChatActivity extends AppCompatActivity {
                     PERMISSION_REQUEST_CODE
             );
         }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.CAMERA},
+                    CAMERA_CAPTURE_REQUEST  // Use the same request code or a separate one if preferred
+            );
+        }
+
     }
 
 
@@ -344,7 +370,40 @@ public class ChatActivity extends AppCompatActivity {
                 uploadFile(selectedFile);
             }
         }
+
+        else if (requestCode == CAMERA_CAPTURE_REQUEST && resultCode == RESULT_OK && data != null) {
+            Bundle extras = data.getExtras();
+            if (extras != null) {
+                android.graphics.Bitmap imageBitmap = (android.graphics.Bitmap) extras.get("data");
+                if (imageBitmap != null) {
+                    uploadCapturedImage(imageBitmap);
+                }
+            }
+        }
     }
+
+    private void uploadCapturedImage(android.graphics.Bitmap bitmap) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, baos);
+        byte[] imageData = baos.toByteArray();
+
+        String fileName = System.currentTimeMillis() + ".jpg";
+        StorageReference storageRef = FirebaseStorage.getInstance().getReference("chat_files/" + conversationId + "/" + fileName);
+
+        storageRef.putBytes(imageData)
+                .addOnSuccessListener(taskSnapshot -> {
+                    storageRef.getDownloadUrl().addOnSuccessListener(downloadUri -> {
+                        MessageModel fileMessage = new MessageModel(currentUserId, otherUserId, "Sent a picture", System.currentTimeMillis());
+                        fileMessage.setFileUrl(downloadUri.toString());
+                        fileMessage.setFileName(fileName);
+                        chatRef.push().setValue(fileMessage);
+                        Toast.makeText(ChatActivity.this, "Picture sent!", Toast.LENGTH_SHORT).show();
+                    });
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(ChatActivity.this, "Image upload failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
 
 
 
