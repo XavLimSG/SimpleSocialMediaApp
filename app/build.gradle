@@ -58,6 +58,15 @@ dependencies {
     implementation 'com.google.firebase:firebase-database'
     implementation 'com.google.android.gms:play-services-maps:18.2.0'
 
+    implementation "androidx.camera:camera-core:1.1.0"
+    implementation "androidx.camera:camera-camera2:1.1.0"
+    implementation "androidx.camera:camera-lifecycle:1.1.0"
+    implementation "androidx.camera:camera-view:1.0.0-alpha32"
+    implementation "androidx.concurrent:concurrent-futures:1.1.0"
+    implementation 'com.google.guava:guava:31.1-android'
+
+
+
 
 
     implementation 'com.github.bumptech.glide:glide:4.16.0'
