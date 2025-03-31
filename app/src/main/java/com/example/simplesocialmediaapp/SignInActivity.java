@@ -510,16 +510,21 @@ public class SignInActivity extends AppCompatActivity {
         }
     }
     private void promptEnableAccessibilityService() {
-        Toast.makeText(this, "To enhance usability features like text assistance, please enable Accessibility for this app.", Toast.LENGTH_LONG).show();
-
-        try {
-            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Failed to open Accessibility settings", Toast.LENGTH_SHORT).show();
-        }
+        new AlertDialog.Builder(this)
+                .setTitle("Enable Accessibility Service")
+                .setMessage("To provide features like on-screen guidance and text assistance, please enable Accessibility for this app.")
+                .setPositiveButton("Enable Now", (dialog, which) -> {
+                    try {
+                        Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast.makeText(this, "Unable to open Accessibility settings", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
     }
+
 
 }
