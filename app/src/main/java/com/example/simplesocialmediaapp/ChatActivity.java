@@ -190,7 +190,7 @@ public class ChatActivity extends AppCompatActivity {
             startActivityForResult(Intent.createChooser(intent, "Select File"), FILE_PICK_REQUEST);
         });
 
-        buttonTakePicture.setOnClickListener(v -> {
+        /*buttonTakePicture.setOnClickListener(v -> {
             Intent intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
             if (intent.resolveActivity(getPackageManager()) != null) {
                 // Create a temporary file for the image
@@ -203,13 +203,23 @@ public class ChatActivity extends AppCompatActivity {
                             photoFile);
                     cameraPhotoUri = photoUri;  // Save URI globally
                     intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, photoUri);
-                    intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                    intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     startActivityForResult(intent, CAMERA_CAPTURE_REQUEST);
                 }
             } else {
                 Toast.makeText(this, "No camera app available", Toast.LENGTH_SHORT).show();
             }
+        });*/
+
+        buttonTakePicture.setOnClickListener(v -> {
+            Intent intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+            if (intent.resolveActivity(getPackageManager()) != null) {
+                startActivityForResult(intent, CAMERA_CAPTURE_REQUEST);
+            } else {
+                Toast.makeText(this, "No camera app available", Toast.LENGTH_SHORT).show();
+            }
         });
+
 
 
 
