@@ -203,6 +203,7 @@ public class ChatActivity extends AppCompatActivity {
                             photoFile);
                     cameraPhotoUri = photoUri;  // Save URI globally
                     intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, photoUri);
+                    intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                     startActivityForResult(intent, CAMERA_CAPTURE_REQUEST);
                 }
             } else {
