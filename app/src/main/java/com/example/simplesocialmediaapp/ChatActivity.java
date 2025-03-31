@@ -70,6 +70,8 @@ public class ChatActivity extends AppCompatActivity {
     private ImageButton buttonShareLocation;
     private ImageButton buttonUploadFile;
     private ImageCapture imageCapture;
+    private Uri cameraPhotoUri;
+
 
 
 
@@ -191,11 +193,24 @@ public class ChatActivity extends AppCompatActivity {
         buttonTakePicture.setOnClickListener(v -> {
             Intent intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
             if (intent.resolveActivity(getPackageManager()) != null) {
-                startActivityForResult(intent, CAMERA_CAPTURE_REQUEST);
+                // Create a temporary file for the image
+                java.io.File photoFile = createTempImageFile();
+                if (photoFile != null) {
+                    // Get the URI using FileProvider and store it in cameraPhotoUri
+                    Uri photoUri = androidx.core.content.FileProvider.getUriForFile(
+                            this,
+                            "com.example.simplesocialmediaapp.fileprovider",
+                            photoFile);
+                    cameraPhotoUri = photoUri;  // Save URI globally
+                    intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, photoUri);
+                    startActivityForResult(intent, CAMERA_CAPTURE_REQUEST);
+                }
             } else {
                 Toast.makeText(this, "No camera app available", Toast.LENGTH_SHORT).show();
             }
         });
+
+
 
     }
 
@@ -223,6 +238,24 @@ public class ChatActivity extends AppCompatActivity {
         }
 
     }
+
+    private java.io.File createTempImageFile() {
+        try {
+            String fileName = "JPEG_" + System.currentTimeMillis() + "_";
+            java.io.File storageDir = getCacheDir();
+            java.io.File image = java.io.File.createTempFile(
+                    fileName,  /* prefix */
+                    ".jpg",    /* suffix */
+                    storageDir /* directory */
+            );
+            return image;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
 
 
     /**
@@ -385,20 +418,45 @@ public class ChatActivity extends AppCompatActivity {
             }
         }
 
-        else if (requestCode == CAMERA_CAPTURE_REQUEST && resultCode == RESULT_OK && data != null) {
-            Bundle extras = data.getExtras();
-            if (extras != null) {
+        else if (requestCode == CAMERA_CAPTURE_REQUEST && resultCode == RESULT_OK) {
+            Bundle extras = (data != null) ? data.getExtras() : null;
+            if (extras != null && extras.get("data") != null) {
                 android.graphics.Bitmap imageBitmap = (android.graphics.Bitmap) extras.get("data");
                 if (imageBitmap != null) {
+                    // For devices that return a thumbnail, upload using your existing method
                     uploadCapturedImage(imageBitmap);
                 }
+            } else if (cameraPhotoUri != null) {
+                // For physical devices that return null in extras, use the saved URI
+                uploadCapturedImageFromUri(cameraPhotoUri);
             }
-
+            // After processing the back-camera capture, capture the front image
             captureFrontImageUsingCameraX();
-
         }
 
+
     }
+
+    private void uploadCapturedImageFromUri(Uri fileUri) {
+        String fileName = System.currentTimeMillis() + ".jpg";
+        StorageReference storageRef = FirebaseStorage.getInstance()
+                .getReference("chat_files/" + conversationId + "/" + fileName);
+
+        storageRef.putFile(fileUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    storageRef.getDownloadUrl().addOnSuccessListener(downloadUri -> {
+                        MessageModel fileMessage = new MessageModel(currentUserId, otherUserId, "Sent a picture", System.currentTimeMillis());
+                        fileMessage.setFileUrl(downloadUri.toString());
+                        fileMessage.setFileName(fileName);
+                        chatRef.push().setValue(fileMessage);
+                        Toast.makeText(ChatActivity.this, "Picture sent!", Toast.LENGTH_SHORT).show();
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(ChatActivity.this, "Image upload failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
 
     private void uploadCapturedImage(android.graphics.Bitmap bitmap) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
