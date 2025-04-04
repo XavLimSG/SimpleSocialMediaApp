@@ -1,21 +1,34 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Preserve all Activities (modify if needed)
+-keep public class * extends android.app.Activity
+-keep public class * extends androidx.appcompat.app.AppCompatActivity
+-keepclassmembers class * extends android.app.Activity {
+   public void *(android.view.View);
+}
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Preserve all Fragments
+-keep public class * extends androidx.fragment.app.Fragment
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Preserve classes used in layout XMLs (like Activities and Fragments)
+-keepclassmembers class * {
+    public <init>(android.content.Context, android.util.AttributeSet);
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Firebase (if used)
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
+# Keep your main app package and models
+-keep class com.example.simplesocialmediaapp.** { *; }
+-dontwarn com.example.simplesocialmediaapp.**
+
+# Preserve annotations
+-keepattributes *Annotation*
+
+# Preserve Parcelable implementations
+-keep class * implements android.os.Parcelable {
+  public static final android.os.Parcelable$Creator *;
+}
+
+# Optional: Obfuscate but keep functionality
+-dontskipnonpubliclibraryclasses
+-dontskipnonpubliclibraryclassmembers
