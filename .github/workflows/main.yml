@@ -54,6 +54,7 @@ jobs:
             --format sarif \
             --output mobscan.sarif \
             --show-compliance \
+            --verbose \
             --fail-on none
         continue-on-error: true
 
