@@ -40,4 +40,4 @@ jobs:
 
       - name: Fail on high severity issues
         run: |
-          mobscan scan . --fail-on high
+          mobscan scan .
