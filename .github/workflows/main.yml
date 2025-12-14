@@ -25,7 +25,7 @@ jobs:
       - name: Install MobScan
         run: |
           pip install semgrep
-          pip install git+https://github.com/YOUR_USERNAME/MobScan.git
+          pip install git+https://github.com/XavLimSG/MobScan.git
 
       - name: Run MobScan
         run: |
