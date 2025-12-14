@@ -5,6 +5,10 @@ on:
     branches: [main, master]
   pull_request:
 
+env:
+  # Set scan profile: 'baseline' for standard apps, 'financial' for banking/payment apps
+  SCAN_PROFILE: baseline
+
 jobs:
   security-scan:
     runs-on: ubuntu-latest
@@ -27,9 +31,32 @@ jobs:
           pip install semgrep
           pip install git+https://github.com/XavLimSG/MobScan.git
 
-      - name: Run MobScan
+      - name: List available profiles
         run: |
-          mobscan scan . --format sarif --output mobscan.sarif
+          mobscan profiles
+
+      - name: Run MobScan with Compliance Mapping
+        run: |
+          mobscan scan . \
+            --profile ${{ env.SCAN_PROFILE }} \
+            --format sarif \
+            --output mobscan.sarif \
+            --show-compliance
+        continue-on-error: true
+
+      - name: Generate Compliance Report
+        run: |
+          mobscan compliance-report . \
+            --profile ${{ env.SCAN_PROFILE }} \
+            --output compliance-report.txt
+        continue-on-error: true
+
+      - name: Generate JSON Report with Compliance
+        run: |
+          mobscan scan . \
+            --profile ${{ env.SCAN_PROFILE }} \
+            --format json \
+            --output mobscan-compliance.json
         continue-on-error: true
 
       - name: Upload SARIF to GitHub Security
@@ -38,6 +65,39 @@ jobs:
         with:
           sarif_file: mobscan.sarif
 
-      - name: Fail on high severity issues
+      - name: Upload Compliance Reports as Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compliance-reports
+          path: |
+            compliance-report.txt
+            mobscan-compliance.json
+            mobscan.sarif
+          retention-days: 90
+
+      - name: Display Compliance Summary
+        if: always()
         run: |
-          mobscan scan .
+          echo "==================================================================="
+          echo "COMPLIANCE SCAN SUMMARY"
+          echo "==================================================================="
+          echo "Profile: ${{ env.SCAN_PROFILE }}"
+          if [ "${{ env.SCAN_PROFILE }}" == "baseline" ]; then
+            echo "Standards: CSA SAS 2.0, OWASP MASVS 2.1"
+          else
+            echo "Standards: CSA SAS 2.0, OWASP MASVS 2.1, MAS TRM"
+          fi
+          echo ""
+          cat compliance-report.txt || echo "No compliance report generated"
+          echo "==================================================================="
+
+      - name: Fail on security threshold
+        run: |
+          # Baseline profile: fail on high severity
+          # Financial profile: fail on medium severity
+          if [ "${{ env.SCAN_PROFILE }}" == "financial" ]; then
+            mobscan scan . --profile financial --fail-on medium
+          else
+            mobscan scan . --profile baseline --fail-on high
+          fi

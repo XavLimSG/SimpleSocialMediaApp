@@ -16,3 +16,4 @@ local.properties
 /.idea
 .idea/deploymentTargetSelector.xml
 .idea/misc.xml
+.github/workflows/mobscan-financial.yml
