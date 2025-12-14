@@ -1,0 +1,43 @@
+name: MobScan Security Check
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install MobScan
+        run: |
+          pip install semgrep
+          pip install git+https://github.com/YOUR_USERNAME/MobScan.git
+
+      - name: Run MobScan
+        run: |
+          mobscan scan . --format sarif --output mobscan.sarif
+        continue-on-error: true
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: mobscan.sarif
+
+      - name: Fail on high severity issues
+        run: |
+          mobscan scan . --fail-on high
