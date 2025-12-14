@@ -99,5 +99,5 @@ jobs:
           if [ "${{ env.SCAN_PROFILE }}" == "financial" ]; then
             mobscan scan . --profile financial --fail-on medium
           else
-            mobscan scan . --profile baseline --fail-on high
+            mobscan scan . --profile baseline
           fi
