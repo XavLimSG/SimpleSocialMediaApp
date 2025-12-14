@@ -1,4 +1,7 @@
-name: MobScan Security Check
+# Example workflow for using MobScan from a PRIVATE repository
+# Rename this file to main.yml if you want to use this approach
+
+name: MobScan Security Check (Private Repo)
 
 on:
   push:
@@ -26,10 +29,13 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install MobScan
+      - name: Install MobScan from Private Repo
         run: |
           pip install semgrep
+          # Install from private GitHub repo using Personal Access Token
           pip install git+https://${{ secrets.GH_PAT }}@github.com/XavLimSG/MobScan.git
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
 
       - name: List available profiles
         run: |
@@ -94,10 +100,10 @@ jobs:
 
       - name: Fail on security threshold
         run: |
-          # Baseline profile: fail on critical severity only
+          # Baseline profile: fail on high severity
           # Financial profile: fail on medium severity
           if [ "${{ env.SCAN_PROFILE }}" == "financial" ]; then
             mobscan scan . --profile financial --fail-on medium
           else
-            mobscan scan . --profile baseline --fail-on critical
+            mobscan scan . --profile baseline
           fi
