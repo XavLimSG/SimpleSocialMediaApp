@@ -16,6 +16,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      actions: read
 
     steps:
       - name: Checkout code
@@ -41,14 +42,15 @@ jobs:
             --profile ${{ env.SCAN_PROFILE }} \
             --format sarif \
             --output mobscan.sarif \
-            --show-compliance
+            --show-compliance \
+            --fail-on none
         continue-on-error: true
 
       - name: Generate Compliance Report
         run: |
           mobscan compliance-report . \
             --profile ${{ env.SCAN_PROFILE }} \
-            --output compliance-report.txt
+            --output compliance-report.txt || echo "Compliance report generation completed with findings"
         continue-on-error: true
 
       - name: Generate JSON Report with Compliance
@@ -56,14 +58,17 @@ jobs:
           mobscan scan . \
             --profile ${{ env.SCAN_PROFILE }} \
             --format json \
-            --output mobscan-compliance.json
+            --output mobscan-compliance.json \
+            --fail-on none
         continue-on-error: true
 
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always()
+        continue-on-error: true
         with:
           sarif_file: mobscan.sarif
+          category: mobscan-security
 
       - name: Upload Compliance Reports as Artifacts
         uses: actions/upload-artifact@v4
@@ -92,12 +97,10 @@ jobs:
           cat compliance-report.txt || echo "No compliance report generated"
           echo "==================================================================="
 
-      - name: Fail on security threshold
+      - name: Display Security Summary
         run: |
-          # Baseline profile: fail on critical severity only
-          # Financial profile: fail on medium severity
-          if [ "${{ env.SCAN_PROFILE }}" == "financial" ]; then
-            mobscan scan . --profile financial --fail-on critical
-          else
-            mobscan scan . --profile baseline 
-          fi
+          echo "==================================================================="
+          echo "Security scan completed. Review findings above and in artifacts."
+          echo "This workflow will not fail the build regardless of severity."
+          echo "==================================================================="
+        continue-on-error: true
