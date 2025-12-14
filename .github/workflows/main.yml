@@ -2,12 +2,23 @@ name: MobScan Security Check
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, develop]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Scan profile to use'
+        required: true
+        default: 'baseline'
+        type: choice
+        options:
+          - baseline
+          - financial
 
 env:
   # Set scan profile: 'baseline' for standard apps, 'financial' for banking/payment apps
-  SCAN_PROFILE: baseline
+  # Can be overridden via workflow_dispatch
+  SCAN_PROFILE: ${{ github.event.inputs.profile || 'baseline' }}
 
 jobs:
   security-scan:
@@ -46,11 +57,20 @@ jobs:
             --fail-on none
         continue-on-error: true
 
-      - name: Generate Compliance Report
+      - name: Generate Compliance Report (Text)
         run: |
           mobscan compliance-report . \
             --profile ${{ env.SCAN_PROFILE }} \
+            --format text \
             --output compliance-report.txt || echo "Compliance report generation completed with findings"
+        continue-on-error: true
+
+      - name: Generate Compliance Report (HTML)
+        run: |
+          mobscan compliance-report . \
+            --profile ${{ env.SCAN_PROFILE }} \
+            --format html \
+            --output compliance-report.html || echo "HTML report generation completed with findings"
         continue-on-error: true
 
       - name: Generate JSON Report with Compliance
@@ -74,12 +94,13 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: compliance-reports
+          name: mobscan-${{ env.SCAN_PROFILE }}-reports
           path: |
             compliance-report.txt
+            compliance-report.html
             mobscan-compliance.json
             mobscan.sarif
-          retention-days: 90
+          retention-days: ${{ env.SCAN_PROFILE == 'financial' && 365 || 90 }}
 
       - name: Display Compliance Summary
         if: always()
@@ -90,17 +111,71 @@ jobs:
           echo "Profile: ${{ env.SCAN_PROFILE }}"
           if [ "${{ env.SCAN_PROFILE }}" == "baseline" ]; then
             echo "Standards: CSA SAS 2.0, OWASP MASVS 2.1"
+            echo "Retention: 90 days"
           else
             echo "Standards: CSA SAS 2.0, OWASP MASVS 2.1, MAS TRM"
+            echo "Retention: 365 days (audit compliance)"
           fi
           echo ""
           cat compliance-report.txt || echo "No compliance report generated"
           echo "==================================================================="
 
+      - name: Comment PR with Compliance Status
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            let reportText = 'Compliance report not generated';
+            try {
+              reportText = fs.readFileSync('compliance-report.txt', 'utf8');
+            } catch (e) {
+              console.log('Could not read compliance report');
+            }
+
+            const profile = '${{ env.SCAN_PROFILE }}';
+            const standards = profile === 'financial'
+              ? 'CSA SAS 2.0, OWASP MASVS 2.1, MAS TRM'
+              : 'CSA SAS 2.0, OWASP MASVS 2.1';
+
+            const emoji = profile === 'financial' ? '🏦' : '🔒';
+            const profileName = profile === 'financial'
+              ? 'Financial (Banking/Payment Apps)'
+              : 'Baseline (Standard Apps)';
+
+            const comment = `## ${emoji} MobScan Security Scan Results
+
+            **Profile**: ${profileName}
+            **Standards**: ${standards}
+
+            <details>
+            <summary>📋 View Compliance Report</summary>
+
+            \`\`\`
+            ${reportText.substring(0, 60000)}
+            \`\`\`
+
+            </details>
+
+            **📊 Artifacts**: Download full reports (text, HTML, JSON, SARIF) from workflow run artifacts.
+
+            **ℹ️ Note**: This scan does not block PRs. Review findings and address as needed.
+
+            ---
+            _Powered by MobScan v0.1.0_`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
       - name: Display Security Summary
+        if: always()
         run: |
           echo "==================================================================="
           echo "Security scan completed. Review findings above and in artifacts."
           echo "This workflow will not fail the build regardless of severity."
           echo "==================================================================="
-        continue-on-error: true
